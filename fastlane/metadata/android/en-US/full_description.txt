@@ -1,0 +1,11 @@
+pynb is a high-performance, native Java Android application built specifically to read, inspect, and navigate Jupyter Notebook (.ipynb) files smoothly without lag.
+
+Key Features:
+- Smooth 60/120 FPS Rendering: Eliminates sluggish WebViews by using native Android RecyclerView with optimized ViewHolder recycling.
+- Native Markdown Typography: Powered by Markwon for instant rendering of headers, lists, code blocks, and tables.
+- Python Syntax Highlighting: Regex-based token syntax highlighting for keywords, numbers, strings, decorators, and comments.
+- Rich Output Display: Supports stream stdout/stderr, Matplotlib/Seaborn plot figures, and Python error tracebacks formatted with full ANSI color sequence fidelity.
+- Fullscreen Plot Viewer: Pinch-to-zoom, pan, and double-tap zoom for chart inspection and sharing.
+- Folder Workspace Explorer: Browse and traverse directory trees via Storage Access Framework with interactive breadcrumbs and live search.
+- Table of Contents: Automatically extracts Markdown headings into an interactive outline bottom sheet for instant section jumping.
+- 100% Offline & Private: Zero internet permission, no ads, no telemetry.

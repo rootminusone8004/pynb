@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_refresh_folder"
+        android:icon="@drawable/ic_refresh"
+        android:title="Refresh"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_switch_folder"
+        android:icon="@drawable/ic_folder"
+        android:title="Change Folder"
+        app:showAsAction="ifRoom" />
+
+</menu>

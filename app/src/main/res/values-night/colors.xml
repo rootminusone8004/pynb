@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Primary Orange (Dark Theme: #FF6E40 / #E44919) -->
+    <color name="jupyter_orange">#FF6E40</color>
+    <color name="jupyter_orange_dark">#B8350D</color>
+    <color name="jupyter_orange_light">#FF8A65</color>
+    <color name="jupyter_orange_container">#3E1508</color>
+    <color name="jupyter_orange_container_text">#FFCCBC</color>
+    
+    <!-- Neutral / Surface (Dark) -->
+    <color name="bg_light">#0D1117</color>
+    <color name="surface_light">#161B22</color>
+    <color name="surface_variant_light">#21262D</color>
+    <color name="text_primary_light">#F0F6FC</color>
+    <color name="text_secondary_light">#C9D1D9</color>
+    <color name="text_muted_light">#8B949E</color>
+    <color name="divider_light">#30363D</color>
+
+    <!-- Code & Output Boxes (Dark) -->
+    <color name="code_bg_light">#0D1117</color>
+    <color name="code_border_light">#30363D</color>
+    <color name="output_bg_light">#161B22</color>
+    <color name="output_border_light">#30363D</color>
+    <color name="line_number_light">#6E7681</color>
+
+    <!-- Error Box (Dark) -->
+    <color name="error_bg_light">#2B1418</color>
+    <color name="error_border_light">#4F1D25</color>
+    <color name="error_text_light">#F85149</color>
+
+    <!-- Badges (Dark) -->
+    <color name="badge_in_bg">#3E1508</color>
+    <color name="badge_in_text">#FFAB91</color>
+    <color name="badge_out_bg">#431407</color>
+    <color name="badge_out_text">#FDBA74</color>
+    <color name="badge_md_bg">#064E3B</color>
+    <color name="badge_md_text">#6EE7B7</color>
+    <color name="badge_raw_bg">#4C1D95</color>
+    <color name="badge_raw_text">#DDD6FE</color>
+    <color name="badge_folder_bg">#3E1508</color>
+    <color name="badge_folder_text">#FFAB91</color>
+
+    <!-- General UI Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+</resources>

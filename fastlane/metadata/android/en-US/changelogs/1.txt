@@ -1,0 +1,9 @@
+- Initial release of pynb: Native Jupyter Notebook reader for Android
+- Smooth 60/120 FPS native RecyclerView cell rendering
+- Markwon Markdown rendering with tables & HTML plugins
+- Python syntax highlighting with line numbers & copy
+- Stream stdout, plot figures & ANSI colorized error tracebacks
+- Fullscreen zoomable image viewer with pinch-to-zoom
+- Folder Workspace Explorer with directory tree traversal & breadcrumbs
+- Table of Contents outline bottom sheet
+- 100% offline & ultra-lightweight release APK (< 2.5 MB)

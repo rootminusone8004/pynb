@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardMarkdown"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginBottom="10dp"
+    app:cardBackgroundColor="@color/surface_light"
+    app:cardCornerRadius="10dp"
+    app:strokeColor="@color/divider_light"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- Cell Header Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_md"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="Markdown"
+                android:textColor="@color/badge_md_text"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvMdCellNumber"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/text_muted_light"
+                android:textSize="11sp"
+                tools:text="#2" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnToggleSource"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="0dp"
+                android:text="@string/toggle_raw"
+                android:textSize="11sp" />
+
+            <ImageButton
+                android:id="@+id/btnCopyMarkdown"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/copy_markdown"
+                android:src="@drawable/ic_copy"
+                app:tint="@color/text_muted_light" />
+
+        </LinearLayout>
+
+        <!-- Rendered Markdown View -->
+        <TextView
+            android:id="@+id/tvMarkdownRendered"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary_light"
+            android:textSize="14sp"
+            android:lineSpacingMultiplier="1.2"
+            android:textIsSelectable="true"
+            tools:text="## 1. Introduction\nThis is a sample markdown description." />
+
+        <!-- Raw Markdown Source View (hidden by default) -->
+        <TextView
+            android:id="@+id/tvMarkdownRaw"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_code_box"
+            android:fontFamily="monospace"
+            android:padding="10dp"
+            android:textColor="@color/text_secondary_light"
+            android:textSize="12sp"
+            android:textIsSelectable="true"
+            android:visibility="gone"
+            tools:text="## 1. Introduction\nThis is raw source." />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

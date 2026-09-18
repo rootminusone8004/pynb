@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginBottom="10dp"
+    app:cardBackgroundColor="@color/surface_light"
+    app:cardCornerRadius="10dp"
+    app:strokeColor="@color/divider_light"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_raw"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="Raw"
+                android:textColor="@color/badge_raw_text"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvRawCellNumber"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/text_muted_light"
+                android:textSize="11sp"
+                tools:text="#3" />
+
+            <ImageButton
+                android:id="@+id/btnCopyRaw"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Copy"
+                android:src="@drawable/ic_copy"
+                app:tint="@color/text_muted_light" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvRawSource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_code_box"
+            android:fontFamily="monospace"
+            android:padding="10dp"
+            android:textColor="@color/text_secondary_light"
+            android:textSize="12sp"
+            android:textIsSelectable="true"
+            tools:text="Raw text content" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,38 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Pynb" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/jupyter_orange</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/jupyter_orange_container</item>
+        <item name="colorOnPrimaryContainer">@color/text_primary_light</item>
+
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="colorSurface">@color/surface_light</item>
+        <item name="colorOnSurface">@color/text_primary_light</item>
+        <item name="colorSurfaceVariant">@color/surface_variant_light</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary_light</item>
+
+        <item name="bottomSheetDialogTheme">@style/CustomBottomSheetDialogTheme</item>
+        <item name="materialAlertDialogTheme">@style/CustomMaterialAlertDialogTheme</item>
+    </style>
+
+    <style name="CustomBottomSheetDialogTheme" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+    </style>
+
+    <style name="CustomBottomSheetStyle" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/surface_light</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.RoundedTop</item>
+    </style>
+
+    <style name="CustomMaterialAlertDialogTheme" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/surface_light</item>
+        <item name="colorOnSurface">@color/text_primary_light</item>
+    </style>
+
+    <style name="ShapeAppearance.RoundedTop" parent="ShapeAppearance.Material3.Corner.Large">
+        <item name="cornerSizeTopLeft">24dp</item>
+        <item name="cornerSizeTopRight">24dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+</resources>

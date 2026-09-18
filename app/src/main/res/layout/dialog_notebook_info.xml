@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/info_title"
+        android:textColor="@color/text_primary_light"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tvInfoKernel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:textColor="@color/text_secondary_light"
+        android:textSize="14sp"
+        tools:text="Kernel: Python 3 (ipykernel)" />
+
+    <TextView
+        android:id="@+id/tvInfoLanguage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:textColor="@color/text_secondary_light"
+        android:textSize="14sp"
+        tools:text="Language: Python 3.11" />
+
+    <TextView
+        android:id="@+id/tvInfoFormat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:textColor="@color/text_secondary_light"
+        android:textSize="14sp"
+        tools:text="Format: nbformat v4.2" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider_light"
+        android:layout_marginVertical="12dp" />
+
+    <TextView
+        android:id="@+id/tvInfoCells"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_primary_light"
+        android:textSize="14sp"
+        tools:text="Cells: 14 total (8 code, 6 markdown)" />
+
+</LinearLayout>

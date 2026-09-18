@@ -1,0 +1,25 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+output.json
+
+# Signing & Keystores
+*.jks
+*.keystore
+*keystore*.txt
+signing.properties
+keystore.properties
+
+# Generated CI release artifacts
+release_body.md
+artifacts/
+fastlane/report.xml
+fastlane/Preview.html

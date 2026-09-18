@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/surface_light"
+    app:cardCornerRadius="12dp"
+    app:strokeColor="@color/divider_light"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary_light"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            tools:text="data_analysis.ipynb" />
+
+        <!-- Chips Row -->
+        <com.google.android.material.chip.ChipGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipKernel"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary_light"
+                android:textSize="11sp"
+                app:chipMinHeight="28dp"
+                tools:text="Python 3 (ipykernel)" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipTotalCells"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary_light"
+                android:textSize="11sp"
+                app:chipMinHeight="28dp"
+                tools:text="8 cells" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipStats"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary_light"
+                android:textSize="11sp"
+                app:chipMinHeight="28dp"
+                tools:text="5 code • 3 markdown" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

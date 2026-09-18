@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardCode"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginBottom="12dp"
+    app:cardBackgroundColor="@color/surface_light"
+    app:cardCornerRadius="10dp"
+    app:strokeColor="@color/divider_light"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Cell Header Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/tvInPrompt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_in"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:textColor="@color/badge_in_text"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace"
+                tools:text="In [ 1 ]:" />
+
+            <TextView
+                android:id="@+id/tvCodeCellNumber"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/text_muted_light"
+                android:textSize="11sp"
+                tools:text="#1" />
+
+            <ImageButton
+                android:id="@+id/btnCollapseCode"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Collapse / Expand"
+                android:src="@drawable/ic_collapse"
+                app:tint="@color/text_muted_light" />
+
+            <ImageButton
+                android:id="@+id/btnCopyCode"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/copy_code"
+                android:src="@drawable/ic_copy"
+                app:tint="@color/text_muted_light" />
+
+        </LinearLayout>
+
+        <!-- Code Block Container (with horizontal scrolling for wide code lines) -->
+        <HorizontalScrollView
+            android:id="@+id/scrollCodeContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_code_box"
+            android:scrollbars="horizontal">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="10dp">
+
+                <!-- Line Numbers -->
+                <TextView
+                    android:id="@+id/tvLineNumbers"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:gravity="end"
+                    android:paddingEnd="10dp"
+                    android:textColor="@color/line_number_light"
+                    android:textSize="13sp"
+                    android:lineSpacingMultiplier="1.15"
+                    tools:text="1\n2\n3" />
+
+                <View
+                    android:id="@+id/viewLineDivider"
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="10dp"
+                    android:background="@color/code_border_light" />
+
+                <!-- Syntax Highlighted Code -->
+                <TextView
+                    android:id="@+id/tvCodeSource"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:lineSpacingMultiplier="1.15"
+                    android:textColor="@color/text_primary_light"
+                    android:textSize="13sp"
+                    android:textIsSelectable="true"
+                    tools:text="import numpy as np\nprint(np.__version__)" />
+
+            </LinearLayout>
+
+        </HorizontalScrollView>
+
+        <!-- Outputs Container -->
+        <LinearLayout
+            android:id="@+id/layoutOutputsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="8dp"
+            android:visibility="gone">
+
+            <!-- Out Prompt Header -->
+            <LinearLayout
+                android:id="@+id/layoutOutHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:id="@+id/tvOutPrompt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_out"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@color/badge_out_text"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    tools:text="Out [ 1 ]:" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Output"
+                    android:textColor="@color/text_muted_light"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+            <!-- Dynamic Outputs Added Programmatically -->
+            <LinearLayout
+                android:id="@+id/layoutOutputsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

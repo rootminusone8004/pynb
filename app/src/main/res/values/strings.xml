@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">pynb</string>
+    <string name="app_tagline">Smooth Jupyter Notebook Reader</string>
+    <string name="open_notebook">Open Notebook</string>
+    <string name="open_notebook_desc">Select any .ipynb or .json notebook file from your device</string>
+    <string name="sample_notebooks">Sample Notebooks</string>
+    <string name="sample_notebooks_desc">Explore sample notebooks rendered with native components</string>
+    <string name="recent_files">Recent Notebooks</string>
+    <string name="clear_recent">Clear</string>
+    <string name="no_recent_files">No recent notebooks yet.\nTap \'Open Notebook\' to view your .ipynb files.</string>
+    <string name="copy_code">Copy Code</string>
+    <string name="copy_markdown">Copy Markdown</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="toggle_raw">Source</string>
+    <string name="toggle_render">Rendered</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="toc_title">Table of Contents</string>
+    <string name="toc_empty">No headings found in this notebook</string>
+    <string name="search_hint">Search in notebook…</string>
+    <string name="search_no_matches">No matches</string>
+    <string name="info_title">Notebook Details</string>
+    <string name="kernel">Kernel</string>
+    <string name="language">Language</string>
+    <string name="total_cells">Total Cells</string>
+    <string name="code_cells">Code Cells</string>
+    <string name="markdown_cells">Markdown Cells</string>
+    <string name="error_reading_notebook">Could not load notebook: %s</string>
+    <string name="loading_notebook">Loading and rendering notebook…</string>
+</resources>
