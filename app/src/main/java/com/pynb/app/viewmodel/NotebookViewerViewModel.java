@@ -120,8 +120,9 @@ public class NotebookViewerViewModel extends AndroidViewModel {
                 notebook.postValue(nb);
 
             } catch (Exception e) {
+                android.util.Log.e("NotebookViewer", "Error loading notebook", e);
                 isLoading.postValue(false);
-                errorMessage.postValue(e.getMessage() != null ? e.getMessage() : "Unknown error occurred");
+                errorMessage.postValue(e.getMessage() != null ? e.getMessage() : "Unknown error (" + e.getClass().getSimpleName() + ")");
             }
         });
     }

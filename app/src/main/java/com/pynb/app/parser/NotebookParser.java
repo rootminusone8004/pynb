@@ -38,6 +38,14 @@ public class NotebookParser {
     }
 
     public static Notebook parse(String jsonString) throws JSONException {
+        if (jsonString == null) {
+            throw new JSONException("JSON input is null");
+        }
+        if (jsonString.startsWith("\uFEFF")) {
+            jsonString = jsonString.substring(1);
+        }
+        jsonString = jsonString.trim();
+
         JSONObject root = new JSONObject(jsonString);
         Notebook notebook = new Notebook();
 

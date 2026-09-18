@@ -107,8 +107,10 @@ public class FolderBrowserActivity extends AppCompatActivity {
             @Override
             public void onNotebookClick(FolderItem item) {
                 Intent intent = new Intent(FolderBrowserActivity.this, NotebookViewerActivity.class);
+                intent.setData(item.getUri());
                 intent.putExtra(NotebookViewerActivity.EXTRA_URI_STRING, item.getUri().toString());
                 intent.putExtra(NotebookViewerActivity.EXTRA_TITLE, item.getName());
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 startActivity(intent);
             }
 

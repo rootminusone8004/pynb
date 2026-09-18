@@ -61,8 +61,18 @@ public class NotebookViewerActivity extends AppCompatActivity {
         setupSearch();
         observeViewModel();
 
+        if (targetUri == null && targetAssetPath == null) {
+            Toast.makeText(this, "No notebook file specified", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         if (savedInstanceState == null) {
             viewModel.loadNotebook(targetUri, targetAssetPath, notebookTitle);
+        } else if (viewModel.getNotebook().getValue() != null) {
+            binding.rvNotebook.setVisibility(View.VISIBLE);
+            binding.layoutLoading.setVisibility(View.GONE);
+            binding.layoutError.setVisibility(View.GONE);
         }
     }
 
@@ -79,10 +89,14 @@ public class NotebookViewerActivity extends AppCompatActivity {
             String uriStr = intent.getStringExtra(EXTRA_URI_STRING);
             if (uriStr != null) {
                 targetUri = Uri.parse(uriStr);
+            } else if (intent.getData() != null) {
+                targetUri = intent.getData();
             }
             targetAssetPath = intent.getStringExtra(EXTRA_ASSET_PATH);
             if (intent.hasExtra(EXTRA_TITLE)) {
                 notebookTitle = intent.getStringExtra(EXTRA_TITLE);
+            } else if (targetUri != null) {
+                notebookTitle = FileUtils.getFileName(this, targetUri);
             }
         }
 
@@ -161,14 +175,23 @@ public class NotebookViewerActivity extends AppCompatActivity {
                 binding.viewerToolbar.setSubtitle(
                         notebook.getMetadata().getKernelDisplayName() + " • " + notebook.getTotalCells() + " cells");
                 adapter.setNotebook(notebook);
+                binding.rvNotebook.setVisibility(View.VISIBLE);
+                binding.layoutLoading.setVisibility(View.GONE);
+                binding.layoutError.setVisibility(View.GONE);
             }
         });
 
         viewModel.getIsLoading().observe(this, loading -> {
-            binding.layoutLoading.setVisibility(loading ? View.VISIBLE : View.GONE);
-            if (loading) {
+            if (Boolean.TRUE.equals(loading)) {
+                binding.layoutLoading.setVisibility(View.VISIBLE);
                 binding.rvNotebook.setVisibility(View.GONE);
                 binding.layoutError.setVisibility(View.GONE);
+            } else {
+                binding.layoutLoading.setVisibility(View.GONE);
+                if (viewModel.getNotebook().getValue() != null) {
+                    binding.rvNotebook.setVisibility(View.VISIBLE);
+                    binding.layoutError.setVisibility(View.GONE);
+                }
             }
         });
 
@@ -180,9 +203,8 @@ public class NotebookViewerActivity extends AppCompatActivity {
                 binding.tvErrorMessage.setText(getString(R.string.error_reading_notebook, error));
                 binding.btnRetry.setOnClickListener(v ->
                         viewModel.loadNotebook(targetUri, targetAssetPath, notebookTitle));
-            } else if (!Boolean.TRUE.equals(viewModel.getIsLoading().getValue())) {
+            } else {
                 binding.layoutError.setVisibility(View.GONE);
-                binding.rvNotebook.setVisibility(View.VISIBLE);
             }
         });
 

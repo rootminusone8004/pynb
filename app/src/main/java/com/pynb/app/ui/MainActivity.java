@@ -92,13 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Open single notebook file
         binding.btnOpenNotebook.setOnClickListener(v -> {
-            String[] mimeTypes = new String[]{
-                    "application/json",
-                    "application/x-ipynb+json",
-                    "application/octet-stream",
-                    "*/*"
-            };
-            openDocumentLauncher.launch(mimeTypes);
+            openDocumentLauncher.launch(new String[]{"*/*"});
         });
 
         // Sample 1: Data Science
@@ -200,8 +194,10 @@ public class MainActivity extends AppCompatActivity {
     private void openNotebookUri(Uri uri) {
         String fileName = FileUtils.getFileName(this, uri);
         Intent intent = new Intent(this, NotebookViewerActivity.class);
+        intent.setData(uri);
         intent.putExtra(NotebookViewerActivity.EXTRA_URI_STRING, uri.toString());
         intent.putExtra(NotebookViewerActivity.EXTRA_TITLE, fileName);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(intent);
     }
 
