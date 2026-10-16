@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand Primary Orange (Dark Theme: #FF6E40 / #E44919) -->
-    <color name="jupyter_orange">#FF6E40</color>
-    <color name="jupyter_orange_dark">#B8350D</color>
+    <!-- Brand Orange Colors (matching GambitStudio) -->
+    <color name="primaryOrange">#E64A19</color>
+    <color name="primaryOrangeDark">#D84315</color>
+    <color name="primaryOrangeLight">#FF7043</color>
+    <color name="orangeAccent">#FF5722</color>
+
+    <!-- Brand Primary Orange (Dark Theme: #FF7043 / #E64A19) -->
+    <color name="jupyter_orange">#FF7043</color>
+    <color name="jupyter_orange_dark">#D84315</color>
     <color name="jupyter_orange_light">#FF8A65</color>
     <color name="jupyter_orange_container">#3E1508</color>
     <color name="jupyter_orange_container_text">#FFCCBC</color>

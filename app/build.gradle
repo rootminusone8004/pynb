@@ -2,6 +2,43 @@ plugins {
     id 'com.android.application'
 }
 
+def computeVersionCode(String name) {
+    try {
+        def parts = name.tokenize('.')
+        int major = parts.size() > 0 ? parts[0].toInteger() : 1
+        int minor = parts.size() > 1 ? parts[1].toInteger() : 0
+        int patch = parts.size() > 2 ? parts[2].toInteger() : 0
+        return major * 10000 + minor * 100 + patch
+    } catch (Exception e) {
+        return 10000
+    }
+}
+
+def resolveVersionName = { ->
+    if (project.hasProperty('versionName')) {
+        return project.property('versionName').toString()
+    }
+    try {
+        def gitTag = 'git describe --tags --exact-match'.execute().text.trim()
+        if (gitTag.startsWith('v')) {
+            return gitTag.substring(1)
+        }
+    } catch (Exception ignored) {}
+    def changelog = rootProject.file('CHANGELOG.md')
+    if (changelog.exists()) {
+        def match = changelog.text =~ /##\s*\[([0-9]+(?:\.[0-9]+)*)\]/
+        if (match.find()) {
+            return match.group(1)
+        }
+    }
+    return "1.0.0"
+}
+
+def appVersionName = resolveVersionName()
+def appVersionCode = project.hasProperty('versionCode') ? 
+    project.property('versionCode').toInteger() : 
+    computeVersionCode(appVersionName)
+
 android {
     namespace 'com.pynb.app'
     compileSdk 34
@@ -10,10 +47,15 @@ android {
         applicationId "com.pynb.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode appVersionCode
+        versionName appVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     buildFeatures {
@@ -24,9 +66,9 @@ android {
         release {
             if (file('release.jks').exists()) {
                 storeFile file('release.jks')
-                storePassword System.getenv("KEYSTORE_PASSWORD") ?: 'pynbkeystore'
-                keyAlias System.getenv("KEY_ALIAS") ?: 'pynb'
-                keyPassword System.getenv("KEY_PASSWORD") ?: 'pynbkeystore'
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: 'pynbkeystore'
+                keyAlias System.getenv("KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS") ?: 'pynb'
+                keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD") ?: 'pynbkeystore'
             } else {
                 initWith(signingConfigs.debug)
             }
@@ -64,6 +106,9 @@ dependencies {
     implementation 'io.noties.markwon:core:4.6.2'
     implementation 'io.noties.markwon:ext-tables:4.6.2'
     implementation 'io.noties.markwon:html:4.6.2'
+    implementation 'io.noties.markwon:image:4.6.2'
+    implementation 'io.noties.markwon:ext-latex:4.6.2'
+    implementation 'io.noties.markwon:inline-parser:4.6.2'
 
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'

@@ -17,3 +17,9 @@
 # Gson rules
 -dontwarn com.google.gson.**
 -keep class com.google.gson.** { *; }
+
+# JLatexMath rules
+-dontwarn ru.noties.jlatexmath.**
+-keep class ru.noties.jlatexmath.** { *; }
+-dontwarn org.scilab.forge.jlatexmath.**
+-keep class org.scilab.forge.jlatexmath.** { *; }

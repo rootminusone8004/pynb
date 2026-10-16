@@ -29,8 +29,15 @@ import com.pynb.app.util.FileUtils;
 import com.pynb.app.util.ImageCache;
 
 import io.noties.markwon.Markwon;
+import com.pynb.app.util.SynchronousLatexPlugin;
 import io.noties.markwon.ext.tables.TablePlugin;
 import io.noties.markwon.html.HtmlPlugin;
+import io.noties.markwon.image.ImagesPlugin;
+import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin;
+
+import android.graphics.Color;
+import androidx.core.content.ContextCompat;
+import com.pynb.app.util.MathFormatter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,9 +67,19 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
         this.isDarkTheme = (nightMode == Configuration.UI_MODE_NIGHT_YES);
 
+        int mathTextColor = isDarkTheme ? Color.WHITE : ContextCompat.getColor(context, R.color.text_primary_light);
+
         this.markwon = Markwon.builder(context)
+                .usePlugin(ImagesPlugin.create())
                 .usePlugin(TablePlugin.create(context))
                 .usePlugin(HtmlPlugin.create())
+                .usePlugin(MarkwonInlineParserPlugin.create())
+                .usePlugin(SynchronousLatexPlugin.create(
+                        context,
+                        () -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale, context.getResources().getDisplayMetrics()),
+                        () -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16f * fontScale, context.getResources().getDisplayMetrics()),
+                        () -> isDarkTheme ? Color.WHITE : ContextCompat.getColor(context, R.color.text_primary_light)
+                ))
                 .build();
     }
 
@@ -175,8 +192,9 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             binding.tvMarkdownRendered.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale);
             binding.tvMarkdownRaw.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * fontScale);
 
-            // Render Markdown
-            markwon.setMarkdown(binding.tvMarkdownRendered, source);
+            // Render Markdown with math support
+            String formattedSource = MathFormatter.formatMath(source);
+            markwon.setMarkdown(binding.tvMarkdownRendered, formattedSource);
             binding.tvMarkdownRaw.setText(source);
 
             // Toggle source / rendered view

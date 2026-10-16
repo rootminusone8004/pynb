@@ -57,6 +57,10 @@ jobs:
       - name: 🔧 Grant Execute Permissions for Gradlew
         run: chmod +x gradlew
 
+      - name: 🏷️ Determine Version & Generate Release Notes
+        id: release_info
+        run: python3 .github/scripts/generate_release_notes.py
+
       - name: 🧪 Run Unit Tests
         run: ./gradlew testDebugUnitTest
 
@@ -65,17 +69,19 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
-
-      - name: 🏷️ Determine Version & Generate Release Notes
-        id: release_info
-        run: python3 .github/scripts/generate_release_notes.py
+        run: ./gradlew assembleRelease -PversionName=${{ steps.release_info.outputs.version }} -PversionCode=${{ steps.release_info.outputs.version_code }}
 
       - name: 📂 Prepare Release Artifacts
         run: |
           mkdir -p artifacts
           cp app/build/outputs/apk/release/app-release.apk artifacts/pynb-${{ steps.release_info.outputs.tag_name }}.apk
           cp app/build/outputs/apk/release/app-release.apk artifacts/pynb-latest.apk
+
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pynb-APK
+          path: artifacts/*.apk
 
       - name: 🚀 Publish GitHub Release
         uses: softprops/action-gh-release@v2

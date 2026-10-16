@@ -3,7 +3,9 @@
         <item name="colorPrimary">@color/jupyter_orange</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorPrimaryContainer">@color/jupyter_orange_container</item>
-        <item name="colorOnPrimaryContainer">@color/text_primary_light</item>
+        <item name="colorOnPrimaryContainer">@color/jupyter_orange_container_text</item>
+        <item name="colorSecondary">@color/orangeAccent</item>
+        <item name="colorOnSecondary">@color/white</item>
 
         <item name="android:windowBackground">@color/bg_light</item>
         <item name="colorSurface">@color/surface_light</item>

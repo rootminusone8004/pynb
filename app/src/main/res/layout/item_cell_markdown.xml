@@ -79,7 +79,6 @@
             android:textColor="@color/text_primary_light"
             android:textSize="14sp"
             android:lineSpacingMultiplier="1.2"
-            android:textIsSelectable="true"
             tools:text="## 1. Introduction\nThis is a sample markdown description." />
 
         <!-- Raw Markdown Source View (hidden by default) -->
