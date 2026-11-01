@@ -23,3 +23,8 @@ release_body.md
 artifacts/
 fastlane/report.xml
 fastlane/Preview.html
+
+# Eclipse / Buildship metadata
+.project
+.classpath
+.settings/

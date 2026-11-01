@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Build_Pipeline-passing-brightgreen?style=for-the-badge&logo=githubactions&logoColor=white" alt="Pipeline Status" />
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android Platform" />
   <img src="https://img.shields.io/badge/Language-Java%2017-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java Language" />
-  <img src="https://img.shields.io/badge/Theme-Vibrant%20Orange-E64A19?style=for-the-badge" alt="Vibrant Orange" />
+  <img src="https://img.shields.io/badge/Theme-Deep%20Orange-E44919?style=for-the-badge" alt="Deep Orange" />
   <img src="https://img.shields.io/badge/Size-%3C%202.5%20MB-blue?style=for-the-badge" alt="App Size" />
   <img src="https://img.shields.io/badge/License-MIT-orange?style=for-the-badge" alt="MIT License" />
 </p>
@@ -93,6 +93,7 @@ Unlike traditional viewers that rely on heavy, memory-intensive nested WebViews,
 pynb/
 ├── .github/
 │   ├── scripts/
+│   │   ├── update_version.py           # Sets versionCode/versionName & writes Fastlane changelog
 │   │   ├── generate_release_notes.py   # Extracts release notes from CHANGELOG.md
 │   │   └── generate_summary.py         # Generates Markdown step summary with hashes
 │   └── workflows/

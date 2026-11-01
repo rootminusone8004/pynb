@@ -60,6 +60,7 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private float fontScale = 1.0f;
     private boolean showLineNumbers = true;
     private final OnImageClickListener imageClickListener;
+    private RecyclerView attachedRecyclerView;
 
     public NotebookAdapter(Context context, OnImageClickListener imageClickListener) {
         this.imageClickListener = imageClickListener;
@@ -78,9 +79,43 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                         context,
                         () -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale, context.getResources().getDisplayMetrics()),
                         () -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16f * fontScale, context.getResources().getDisplayMetrics()),
-                        () -> isDarkTheme ? Color.WHITE : ContextCompat.getColor(context, R.color.text_primary_light)
+                        () -> isDarkTheme ? Color.WHITE : ContextCompat.getColor(context, R.color.text_primary_light),
+                        () -> markdownContentWidthPx(context)
                 ))
                 .build();
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        attachedRecyclerView = recyclerView;
+    }
+
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        if (attachedRecyclerView == recyclerView) {
+            attachedRecyclerView = null;
+        }
+    }
+
+    /**
+     * Width available to rendered Markdown inside a cell card: list width minus the card's
+     * horizontal margins (2 x 12dp), stroke (2 x 1dp) and content padding (2 x 14dp).
+     * Used to scale down formulas that would otherwise overflow and be clipped.
+     */
+    private int markdownContentWidthPx(Context context) {
+        android.util.DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        int listWidth = 0;
+        if (attachedRecyclerView != null) {
+            listWidth = attachedRecyclerView.getWidth()
+                    - attachedRecyclerView.getPaddingLeft() - attachedRecyclerView.getPaddingRight();
+        }
+        if (listWidth <= 0) {
+            listWidth = dm.widthPixels;
+        }
+        int chrome = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 54f, dm));
+        return Math.max(1, listWidth - chrome);
     }
 
     public void setNotebook(Notebook notebook) {

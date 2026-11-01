@@ -48,30 +48,43 @@ public class SynchronousLatexPlugin extends AbstractMarkwonPlugin {
         int getTextColor();
     }
 
+    /** Maximum width (px) a formula may occupy; formulas wider than this are scaled down. */
+    public interface WidthProvider {
+        int getMaxWidthPx();
+    }
+
+    /** Inline node produced by {@code $$...$$} written in the middle of a line: rendered as display math. */
+    public static class DisplayLatexNode extends JLatexMathNode {
+    }
+
     private final TextSizeProvider inlineTextSizeProvider;
     private final TextSizeProvider blockTextSizeProvider;
     private final ColorProvider colorProvider;
+    private final WidthProvider widthProvider;
 
     public static SynchronousLatexPlugin create(
             @NonNull Context context,
             @NonNull TextSizeProvider inlineTextSizeProvider,
             @NonNull TextSizeProvider blockTextSizeProvider,
-            @NonNull ColorProvider colorProvider) {
+            @NonNull ColorProvider colorProvider,
+            @NonNull WidthProvider widthProvider) {
         try {
             JLatexMathAndroid.init(context.getApplicationContext());
         } catch (Throwable t) {
             Log.e(TAG, "Failed to init JLatexMathAndroid in plugin factory", t);
         }
-        return new SynchronousLatexPlugin(inlineTextSizeProvider, blockTextSizeProvider, colorProvider);
+        return new SynchronousLatexPlugin(inlineTextSizeProvider, blockTextSizeProvider, colorProvider, widthProvider);
     }
 
     private SynchronousLatexPlugin(
             @NonNull TextSizeProvider inlineTextSizeProvider,
             @NonNull TextSizeProvider blockTextSizeProvider,
-            @NonNull ColorProvider colorProvider) {
+            @NonNull ColorProvider colorProvider,
+            @NonNull WidthProvider widthProvider) {
         this.inlineTextSizeProvider = inlineTextSizeProvider;
         this.blockTextSizeProvider = blockTextSizeProvider;
         this.colorProvider = colorProvider;
+        this.widthProvider = widthProvider;
     }
 
     @Override
@@ -88,33 +101,34 @@ public class SynchronousLatexPlugin extends AbstractMarkwonPlugin {
 
     @Override
     public void configureVisitor(@NonNull MarkwonVisitor.Builder builder) {
-        // Handle inline math nodes
+        // $...$ : inline math, sits on the text baseline
         builder.on(JLatexMathNode.class, (visitor, node) -> {
             String latex = node.latex();
             if (latex == null || latex.trim().isEmpty()) return;
-
-            boolean isDisplay = isDisplayMath(latex);
-            renderMath(visitor, latex.trim(), isDisplay);
+            renderMath(visitor, latex, false);
         });
 
-        // Handle block math nodes
+        // $$...$$ in the middle of a line: display math inside a paragraph
+        builder.on(DisplayLatexNode.class, (visitor, node) -> {
+            String latex = node.latex();
+            if (latex == null || latex.trim().isEmpty()) return;
+            renderMath(visitor, latex, true);
+        });
+
+        // Fenced $$ block on its own lines
         builder.on(JLatexMathBlock.class, (visitor, node) -> {
             String latex = node.latex();
             if (latex == null || latex.trim().isEmpty()) return;
-
-            renderMath(visitor, latex.trim(), true);
+            visitor.blockStart(node);
+            renderMath(visitor, latex, true);
+            visitor.blockEnd(node);
         });
     }
 
-    private boolean isDisplayMath(String latex) {
-        if (latex == null) return false;
-        String trimmed = latex.trim();
-        return trimmed.contains("\n")
-                || trimmed.startsWith("\\begin{")
-                || trimmed.startsWith("\\displaystyle");
-    }
+    private void renderMath(MarkwonVisitor visitor, String rawLatex, boolean isBlock) {
+        String latex = MathFormatter.normalizeLatex(rawLatex);
+        if (latex.isEmpty()) return;
 
-    private void renderMath(MarkwonVisitor visitor, String latex, boolean isBlock) {
         float textSize = isBlock ? blockTextSizeProvider.getTextSizePx() : inlineTextSizeProvider.getTextSizePx();
         int textColor = colorProvider.getTextColor();
 
@@ -125,19 +139,38 @@ public class SynchronousLatexPlugin extends AbstractMarkwonPlugin {
                     .align(isBlock ? JLatexMathDrawable.ALIGN_CENTER : JLatexMathDrawable.ALIGN_LEFT)
                     .build();
 
-            drawable.setBounds(0, 0, Math.max(1, drawable.getIntrinsicWidth()), Math.max(1, drawable.getIntrinsicHeight()));
+            int width = Math.max(1, drawable.getIntrinsicWidth());
+            int height = Math.max(1, drawable.getIntrinsicHeight());
+            int depth;
+            try {
+                depth = Math.max(0, Math.min(height, drawable.icon().getIconDepth()));
+            } catch (Throwable t) {
+                depth = height / 2;
+            }
 
+            // Scale wide formulas down to the available width (JLatexMathDrawable scales its
+            // content to fit its bounds), instead of letting them overflow and get clipped.
+            int maxWidth = widthProvider.getMaxWidthPx();
+            if (maxWidth > 0 && width > maxWidth) {
+                float scale = (float) maxWidth / width;
+                width = maxWidth;
+                height = Math.max(1, Math.round(height * scale));
+                depth = Math.round(depth * scale);
+            }
+            drawable.setBounds(0, 0, width, height);
+
+            int start;
             if (isBlock) {
                 visitor.ensureNewLine();
-                int start = visitor.length();
+                start = visitor.length();
                 visitor.builder().append('\uFFFC');
-                visitor.setSpans(start, new LatexMathSpan(drawable, true));
+                visitor.setSpans(start, new LatexMathSpan(drawable, true, depth));
                 visitor.setSpans(start, new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER));
                 visitor.ensureNewLine();
             } else {
-                int start = visitor.length();
+                start = visitor.length();
                 visitor.builder().append('\uFFFC');
-                visitor.setSpans(start, new LatexMathSpan(drawable, false));
+                visitor.setSpans(start, new LatexMathSpan(drawable, false, depth));
             }
         } catch (Throwable t) {
             Log.w(TAG, "Failed to render LaTeX formula: `" + latex + "`", t);
@@ -145,14 +178,14 @@ public class SynchronousLatexPlugin extends AbstractMarkwonPlugin {
             if (isBlock) {
                 visitor.ensureNewLine();
                 int start = visitor.length();
-                visitor.builder().append(latex);
+                visitor.builder().append(rawLatex.trim());
                 visitor.setSpans(start, new TypefaceSpan("monospace"));
                 visitor.setSpans(start, new StyleSpan(Typeface.ITALIC));
                 visitor.setSpans(start, new AlignmentSpan.Standard(Layout.Alignment.ALIGN_CENTER));
                 visitor.ensureNewLine();
             } else {
                 int start = visitor.length();
-                visitor.builder().append("$").append(latex).append("$");
+                visitor.builder().append(rawLatex.trim());
                 visitor.setSpans(start, new TypefaceSpan("monospace"));
                 visitor.setSpans(start, new StyleSpan(Typeface.ITALIC));
             }
@@ -160,12 +193,16 @@ public class SynchronousLatexPlugin extends AbstractMarkwonPlugin {
     }
 
     /**
-     * InlineProcessor that matches double dollar $$...$$ and single dollar $...$ formulas.
+     * InlineProcessor for {@code $$...$$} (display) and {@code $...$} (inline) formulas.
+     *
+     * <p>Markwon's {@code match()} uses {@link java.util.regex.Matcher#find()}, so the patterns
+     * must be anchored with {@code ^}; otherwise a match further along the paragraph would be
+     * accepted and the text in between silently dropped. Non-math dollars have already been
+     * escaped by {@link MathFormatter}, so every {@code $} reaching here is a delimiter.</p>
      */
     public static class SynchronousLatexInlineProcessor extends InlineProcessor {
-        private static final Pattern DOUBLE_DOLLAR = Pattern.compile("(\\${2})([\\s\\S]+?)\\1");
-        private static final Pattern SINGLE_DOLLAR = Pattern.compile("(\\$)((?!\\$)[^\\n]+?)(?<!\\\\)\\$");
-        private static final Pattern CURRENCY_PATTERN = Pattern.compile("^\\d[\\d,.]*$");
+        private static final Pattern DOUBLE_DOLLAR = Pattern.compile("^\\$\\$((?:\\\\[\\s\\S]|[^\\\\$])+?)\\$\\$");
+        private static final Pattern SINGLE_DOLLAR = Pattern.compile("^\\$((?:\\\\[\\s\\S]|[^\\\\$])+?)\\$");
 
         @Override
         public char specialCharacter() {
@@ -174,27 +211,17 @@ public class SynchronousLatexPlugin extends AbstractMarkwonPlugin {
 
         @Override
         protected Node parse() {
-            // 1. Double dollar $$...$$
             String doubleMatch = match(DOUBLE_DOLLAR);
             if (doubleMatch != null) {
-                String content = doubleMatch.substring(2, doubleMatch.length() - 2);
-                JLatexMathNode node = new JLatexMathNode();
-                node.latex(content);
+                DisplayLatexNode node = new DisplayLatexNode();
+                node.latex(doubleMatch.substring(2, doubleMatch.length() - 2));
                 return node;
             }
 
-            // 2. Single dollar $...$
-            int prevIndex = index;
             String singleMatch = match(SINGLE_DOLLAR);
             if (singleMatch != null) {
-                String content = singleMatch.substring(1, singleMatch.length() - 1).trim();
-                if (CURRENCY_PATTERN.matcher(content).matches()) {
-                    // Currency like $100 or $5.50 - rollback index
-                    index = prevIndex;
-                    return null;
-                }
                 JLatexMathNode node = new JLatexMathNode();
-                node.latex(content);
+                node.latex(singleMatch.substring(1, singleMatch.length() - 1));
                 return node;
             }
 

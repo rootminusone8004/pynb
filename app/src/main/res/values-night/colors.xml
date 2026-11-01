@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Brand Orange Colors (matching GambitStudio) -->
-    <color name="primaryOrange">#E64A19</color>
-    <color name="primaryOrangeDark">#D84315</color>
+    <!-- Brand Orange Colors (matching Budjet) -->
+    <color name="primaryOrange">#E44919</color>
+    <color name="primaryOrangeDark">#BF360C</color>
     <color name="primaryOrangeLight">#FF7043</color>
-    <color name="orangeAccent">#FF5722</color>
+    <color name="orangeAccent">#FF7043</color>
 
-    <!-- Brand Primary Orange (Dark Theme: #FF7043 / #E64A19) -->
+    <!-- Brand Primary Orange (Dark Theme: #FF7043 / #E44919) -->
     <color name="jupyter_orange">#FF7043</color>
-    <color name="jupyter_orange_dark">#D84315</color>
+    <color name="jupyter_orange_dark">#BF360C</color>
     <color name="jupyter_orange_light">#FF8A65</color>
-    <color name="jupyter_orange_container">#3E1508</color>
+    <color name="jupyter_orange_container">#2B1408</color>
     <color name="jupyter_orange_container_text">#FFCCBC</color>
     
     <!-- Neutral / Surface (Dark) -->
@@ -35,7 +35,7 @@
     <color name="error_text_light">#F85149</color>
 
     <!-- Badges (Dark) -->
-    <color name="badge_in_bg">#3E1508</color>
+    <color name="badge_in_bg">#2B1408</color>
     <color name="badge_in_text">#FFAB91</color>
     <color name="badge_out_bg">#431407</color>
     <color name="badge_out_text">#FDBA74</color>
@@ -43,7 +43,7 @@
     <color name="badge_md_text">#6EE7B7</color>
     <color name="badge_raw_bg">#4C1D95</color>
     <color name="badge_raw_text">#DDD6FE</color>
-    <color name="badge_folder_bg">#3E1508</color>
+    <color name="badge_folder_bg">#2B1408</color>
     <color name="badge_folder_text">#FFAB91</color>
 
     <!-- General UI Colors -->

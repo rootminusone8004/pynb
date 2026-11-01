@@ -21,34 +21,16 @@ def main():
 
     changelog_content = changelog_path.read_text(encoding="utf-8")
 
-    # 1. Extract version from CHANGELOG.md (e.g. ## [1.0.0] - ...)
-    match = re.search(r'^##\s*\[([0-9]+(?:\.[0-9]+)*)\]', changelog_content, re.MULTILINE)
-    if not match:
-        print("::error::Could not find version pattern '## [X.Y.Z]' in CHANGELOG.md", file=sys.stderr)
-        sys.exit(1)
-
-    changelog_version = match.group(1)
-
-    # Respect tag push if ref is refs/tags/v*
-    github_ref = os.environ.get("GITHUB_REF", "")
-    if github_ref.startswith("refs/tags/v"):
-        tag = github_ref.replace("refs/tags/", "")
-        version = tag.lstrip("v")
-    else:
-        version = changelog_version
-        tag = f"v{version}"
-
+    # 1. Version comes from update_version.py (the previous workflow step).
+    version = os.environ.get("VERSION", "").strip()
+    if not version:
+        match = re.search(r'^##\s*\[([0-9]+(?:\.[0-9]+)*)\]', changelog_content, re.MULTILINE)
+        if not match:
+            print("::error::VERSION not set and no '## [X.Y.Z]' heading in CHANGELOG.md", file=sys.stderr)
+            sys.exit(1)
+        version = match.group(1)
+    tag = f"v{version}"
     release_title = f"pynb {tag}"
-
-    # Compute integer versionCode from semantic version (major * 10000 + minor * 100 + patch)
-    try:
-        parts = [int(p) for p in version.split(".")]
-        major = parts[0] if len(parts) > 0 else 1
-        minor = parts[1] if len(parts) > 1 else 0
-        patch = parts[2] if len(parts) > 2 else 0
-        version_code = major * 10000 + minor * 100 + patch
-    except Exception:
-        version_code = 10000
 
     # 2. Extract release notes for this version from CHANGELOG.md
     pattern = rf'##\s*\[{re.escape(version)}\][^\n]*\n(.*?)(?=\n##\s*\[|\Z)'
@@ -72,13 +54,11 @@ def main():
         with open(github_output, "a", encoding="utf-8") as f:
             f.write(f"tag_name={tag}\n")
             f.write(f"version={version}\n")
-            f.write(f"version_code={version_code}\n")
             f.write(f"release_title={release_title}\n")
 
     print(f"Version: {version}")
     print(f"Release Tag: {tag}")
     print(f"Release Title: {release_title}")
-    print(f"Version Code: {version_code}")
     print(f"Release Body written to: {body_file}")
 
 
