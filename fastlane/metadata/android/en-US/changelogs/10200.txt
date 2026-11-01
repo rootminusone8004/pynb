@@ -1,0 +1,6 @@
+Changed
+  - App color: Switched to Budjet's deep orange tone (#E44919).
+  - Release automation: GitHub Actions now sets versionCode/versionName from CHANGELOG.md and writes the Fastlane changelog (changelogs/<versionCode>.txt) for each release.
+Fixed
+  - Math rendering: Text between formulas was sometimes dropped, and prices like $5 could be mistaken for math.
+...

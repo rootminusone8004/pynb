@@ -11,8 +11,8 @@ android {
         minSdk 24
         targetSdk 34
         // Maintained by .github/scripts/update_version.py (GitHub Actions) from CHANGELOG.md.
-        versionCode 10001
-        versionName "1.0.1"
+        versionCode 10200
+        versionName "1.2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
