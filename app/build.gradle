@@ -10,9 +10,9 @@ android {
         applicationId "com.pynb.app"
         minSdk 24
         targetSdk 34
-        // Maintained by .github/scripts/update_version.py (GitHub Actions) from CHANGELOG.md.
-        versionCode 10200
-        versionName "1.2.0"
+        // Maintained by .github/scripts/update_version.py (git pre-commit hook) from CHANGELOG.md.
+        versionCode 10300
+        versionName "1.3.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

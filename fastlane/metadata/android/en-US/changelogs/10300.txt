@@ -1,0 +1,4 @@
+Added
+  - Run cells with Termux: Connect to a Python .venv in Termux and run code cells (▶ per cell, Run All, Interrupt, Restart). Supports printed output, results, display(), matplotlib figures, errors, !shell, %pip and %cd.
+  - Edit cells: ✏️ on markdown and code cells opens a full-screen editor. Code gets Python highlighting, auto-indent and a key bar (Tab, unindent, brackets, quotes); markdown gets a markdown key bar. "Apply and run" runs the edited code cell.
+...

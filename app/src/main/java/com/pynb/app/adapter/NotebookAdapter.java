@@ -48,6 +48,35 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         void onImageClick(Bitmap bitmap, String title);
     }
 
+    /** Run / stop requests from a code cell's play button. */
+    public interface OnRunCellListener {
+        void onRunCell(int cellIndex);
+
+        void onStopCell(int cellIndex);
+    }
+
+    private OnRunCellListener runCellListener;
+
+    /** Edit requests from a markdown or code cell's pencil button. */
+    public interface OnEditCellListener {
+        void onEditCell(int cellIndex);
+    }
+
+    private OnEditCellListener editCellListener;
+
+    public void setOnEditCellListener(OnEditCellListener listener) {
+        this.editCellListener = listener;
+    }
+
+    public void setOnRunCellListener(OnRunCellListener listener) {
+        this.runCellListener = listener;
+    }
+
+    /** Re-binds one cell (cell index, not adapter position). */
+    public void notifyCellChanged(int cellIndex) {
+        notifyItemChanged(cellIndex + 1); // position 0 is the notebook header
+    }
+
     private static final int TYPE_HEADER = 0;
     private static final int TYPE_MARKDOWN = 1;
     private static final int TYPE_CODE = 2;
@@ -246,6 +275,11 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                 }
             });
 
+            // Edit
+            binding.btnEditMarkdown.setOnClickListener(v -> {
+                if (editCellListener != null) editCellListener.onEditCell(index);
+            });
+
             // Copy markdown source
             binding.btnCopyMarkdown.setOnClickListener(v -> {
                 FileUtils.copyToClipboard(v.getContext(), "Markdown Cell #" + (index + 1), source);
@@ -300,6 +334,24 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             });
             updateCollapseState(cell);
 
+            // Edit
+            binding.btnEditCode.setOnClickListener(v -> {
+                if (editCellListener != null) editCellListener.onEditCell(index);
+            });
+
+            // Run / stop
+            boolean active = cell.getRunState() != NotebookCell.RunState.IDLE;
+            binding.btnRunCell.setImageResource(active ? R.drawable.ic_stop : R.drawable.ic_play);
+            binding.btnRunCell.setContentDescription(context.getString(active ? R.string.stop_cell : R.string.run_cell));
+            binding.btnRunCell.setOnClickListener(v -> {
+                if (runCellListener == null) return;
+                if (cell.getRunState() != NotebookCell.RunState.IDLE) {
+                    runCellListener.onStopCell(index);
+                } else {
+                    runCellListener.onRunCell(index);
+                }
+            });
+
             // Copy code
             binding.btnCopyCode.setOnClickListener(v -> {
                 FileUtils.copyToClipboard(context, "Code Cell #" + (index + 1), source);
@@ -341,7 +393,8 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
             for (int i = 0; i < cell.getOutputs().size(); i++) {
                 CellOutput output = cell.getOutputs().get(i);
-                String cacheKey = "cell_" + cellIndex + "_out_" + i;
+                // identity hash: re-running a cell creates new output objects, so stale figures are never reused
+                String cacheKey = "cell_" + cellIndex + "_out_" + i + "_" + System.identityHashCode(output);
 
                 // 1. Image Output (PNG / JPEG)
                 if (output.hasImage()) {

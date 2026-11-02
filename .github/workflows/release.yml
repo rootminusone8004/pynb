@@ -57,21 +57,9 @@ jobs:
       - name: 🔧 Grant Execute Permissions for Gradlew
         run: chmod +x gradlew
 
-      - name: 🔢 Update versionCode, versionName & Fastlane Changelog
+      - name: 🔢 Verify versionCode, versionName & Fastlane Changelog
         id: version
-        run: python3 .github/scripts/update_version.py
-
-      - name: 💾 Commit Version Bump
-        id: commit
-        run: |
-          if [ "${{ steps.version.outputs.changed }}" = "true" ] && [ "${{ github.ref_type }}" = "branch" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add app/build.gradle fastlane/metadata/android/en-US/changelogs/
-            git commit -m "chore: v${{ steps.version.outputs.version }} (versionCode ${{ steps.version.outputs.version_code }}) [skip ci]"
-            git push origin "HEAD:${{ github.ref_name }}"
-          fi
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: python3 .github/scripts/update_version.py --check
 
       - name: 🏷️ Generate Release Notes
         id: release_info
@@ -105,7 +93,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_info.outputs.tag_name }}
-          target_commitish: ${{ steps.commit.outputs.sha }}
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.release_info.outputs.release_title }}
           body_path: release_body.md
           draft: false

@@ -50,6 +50,26 @@
                 tools:text="#1" />
 
             <ImageButton
+                android:id="@+id/btnEditCode"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/edit_cell"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/text_muted_light" />
+
+            <ImageButton
+                android:id="@+id/btnRunCell"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/run_cell"
+                android:src="@drawable/ic_play"
+                app:tint="@color/jupyter_orange" />
+
+            <ImageButton
                 android:id="@+id/btnCollapseCode"
                 android:layout_width="28dp"
                 android:layout_height="28dp"

@@ -15,6 +15,17 @@ public class NotebookCell implements Serializable {
     private boolean isCollapsed = false;
     private int cellIndex = 0;
 
+    /** Execution state while a Termux kernel runs this cell (not saved). */
+    public enum RunState { IDLE, QUEUED, RUNNING }
+
+    private transient RunState runState = RunState.IDLE;
+    /** Original JSON of the cell, so saving keeps fields this app does not model. */
+    private transient org.json.JSONObject rawJson;
+    /** True once outputs / execution count were replaced by running the cell. */
+    private transient boolean modified = false;
+    /** True once the source was edited in the app. */
+    private transient boolean sourceModified = false;
+
     public NotebookCell() {}
 
     public String getCellType() {
@@ -81,7 +92,42 @@ public class NotebookCell implements Serializable {
         return outputs != null && !outputs.isEmpty();
     }
 
+    public RunState getRunState() {
+        return runState != null ? runState : RunState.IDLE;
+    }
+
+    public void setRunState(RunState runState) {
+        this.runState = runState;
+    }
+
+    public org.json.JSONObject getRawJson() {
+        return rawJson;
+    }
+
+    public void setRawJson(org.json.JSONObject rawJson) {
+        this.rawJson = rawJson;
+    }
+
+    public boolean isModified() {
+        return modified;
+    }
+
+    public void setModified(boolean modified) {
+        this.modified = modified;
+    }
+
+    public boolean isSourceModified() {
+        return sourceModified;
+    }
+
+    public void setSourceModified(boolean sourceModified) {
+        this.sourceModified = sourceModified;
+    }
+
     public String getExecutionPrompt() {
+        if (getRunState() != RunState.IDLE) {
+            return "[*]";
+        }
         if (executionCount == null) {
             return "[ ]";
         }

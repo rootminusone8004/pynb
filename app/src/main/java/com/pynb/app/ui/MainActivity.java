@@ -45,10 +45,16 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String[]> openDocumentLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
                 if (uri != null) {
+                    // Keep write access too, so executed outputs can be saved in place
                     try {
-                        getContentResolver().takePersistableUriPermission(
-                                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    } catch (Exception ignored) {}
+                        getContentResolver().takePersistableUriPermission(uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    } catch (Exception e) {
+                        try {
+                            getContentResolver().takePersistableUriPermission(
+                                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        } catch (Exception ignored) {}
+                    }
 
                     openNotebookUri(uri);
                 }
@@ -197,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
         intent.setData(uri);
         intent.putExtra(NotebookViewerActivity.EXTRA_URI_STRING, uri.toString());
         intent.putExtra(NotebookViewerActivity.EXTRA_TITLE, fileName);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         startActivity(intent);
     }
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_editor_run"
+        android:icon="@drawable/ic_play"
+        android:title="@string/editor_apply_run"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_editor_done"
+        android:icon="@drawable/ic_check"
+        android:title="@string/editor_done"
+        app:showAsAction="always" />
+</menu>

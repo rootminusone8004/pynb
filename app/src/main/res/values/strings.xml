@@ -27,4 +27,36 @@
     <string name="markdown_cells">Markdown Cells</string>
     <string name="error_reading_notebook">Could not load notebook: %s</string>
     <string name="loading_notebook">Loading and rendering notebook…</string>
+
+    <!-- Termux kernel -->
+    <string name="run_cell">Run cell</string>
+    <string name="stop_cell">Stop cell</string>
+    <string name="kernel_connect_title">Connect to Termux Python</string>
+    <string name="kernel_venv_hint">.venv directory in Termux</string>
+    <string name="kernel_workdir_hint">Working directory (optional)</string>
+    <string name="kernel_workdir_helper">Defaults to the folder that contains the .venv</string>
+    <string name="kernel_connect">Connect</string>
+    <string name="kernel_setup_help">One-time setup in Termux:\n\n1. Allow other apps to run commands:\n   echo \"allow-external-apps=true\" >> ~/.termux/termux.properties\n   termux-reload-settings\n\n2. Create the virtual environment (if you have not yet):\n   python -m venv ~/myproject/.venv\n\nThen grant pynb the \"Run commands in Termux environment\" permission when asked.\n\nTip: for numpy / matplotlib, run \"pkg install python-numpy matplotlib\" and create the venv with --system-site-packages.</string>
+    <string name="kernel_termux_missing">Termux is not installed. Install Termux from F-Droid or GitHub to run cells.</string>
+    <string name="kernel_permission_denied">Without the \"Run commands in Termux environment\" permission pynb cannot start Python in Termux. You can grant it in Android settings → Apps → pynb → Permissions.</string>
+    <string name="kernel_failed_title">Could not start Python</string>
+    <string name="kernel_not_connected">Connect to a Termux .venv first</string>
+    <string name="kernel_restarted">Kernel restarted</string>
+    <string name="unsaved_title">Unsaved changes</string>
+    <string name="unsaved_message">Save your edits and the outputs of the cells you ran before leaving?</string>
+    <string name="save">Save</string>
+    <string name="discard">Discard</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_read_only">This notebook cannot be overwritten. Choose where to save a copy.</string>
+
+    <!-- Cell editor -->
+    <string name="edit_cell">Edit cell</string>
+    <string name="editor_title_code">Edit code cell #%d</string>
+    <string name="editor_title_markdown">Edit markdown cell #%d</string>
+    <string name="editor_done">Done</string>
+    <string name="editor_apply_run">Apply and run</string>
+    <string name="editor_hint">Type here…</string>
+    <string name="editor_discard_title">Discard edits?</string>
+    <string name="editor_discard_message">Your changes to this cell will be lost.</string>
+    <string name="editor_keep_editing">Keep editing</string>
 </resources>

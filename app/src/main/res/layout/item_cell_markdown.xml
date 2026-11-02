@@ -47,6 +47,16 @@
                 android:textSize="11sp"
                 tools:text="#2" />
 
+            <ImageButton
+                android:id="@+id/btnEditMarkdown"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/edit_cell"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/text_muted_light" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnToggleSource"
                 style="@style/Widget.Material3.Button.TextButton"

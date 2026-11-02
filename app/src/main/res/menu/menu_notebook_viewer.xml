@@ -3,6 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/action_run_all"
+        android:icon="@drawable/ic_play"
+        android:title="Run All Cells"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_save"
+        android:icon="@drawable/ic_save"
+        android:title="Save"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search"
         android:title="Search"
@@ -44,6 +56,38 @@
         android:id="@+id/action_share"
         android:icon="@drawable/ic_share"
         android:title="Share Notebook"
+        app:showAsAction="never" />
+
+    <group android:id="@+id/group_kernel">
+        <item
+            android:id="@+id/action_kernel_connect"
+            android:icon="@drawable/ic_terminal"
+            android:title="Connect to Termux .venv…"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/action_kernel_interrupt"
+            android:icon="@drawable/ic_stop"
+            android:title="Interrupt Kernel"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/action_kernel_restart"
+            android:icon="@drawable/ic_refresh"
+            android:title="Restart Kernel"
+            app:showAsAction="never" />
+
+        <item
+            android:id="@+id/action_kernel_disconnect"
+            android:icon="@drawable/ic_close"
+            android:title="Disconnect Kernel"
+            app:showAsAction="never" />
+    </group>
+
+    <item
+        android:id="@+id/action_save_as"
+        android:icon="@drawable/ic_save"
+        android:title="Save As…"
         app:showAsAction="never" />
 
 </menu>

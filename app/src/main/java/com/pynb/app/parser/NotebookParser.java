@@ -48,6 +48,7 @@ public class NotebookParser {
 
         JSONObject root = new JSONObject(jsonString);
         Notebook notebook = new Notebook();
+        notebook.setRawJson(root);
 
         int nbformat = root.optInt("nbformat", 4);
         int nbformatMinor = root.optInt("nbformat_minor", 0);
@@ -103,6 +104,7 @@ public class NotebookParser {
 
     private static NotebookCell parseCell(JSONObject cellObj) {
         NotebookCell cell = new NotebookCell();
+        cell.setRawJson(cellObj);
         String cellType = cellObj.optString("cell_type", "code");
         cell.setCellType(cellType);
 
@@ -141,8 +143,9 @@ public class NotebookParser {
         return cell;
     }
 
-    private static CellOutput parseOutput(JSONObject outObj) {
+    public static CellOutput parseOutput(JSONObject outObj) {
         CellOutput output = new CellOutput();
+        output.setRawJson(outObj);
         String outputType = outObj.optString("output_type", "");
         output.setOutputType(outputType);
 

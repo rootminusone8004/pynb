@@ -43,3 +43,47 @@ There are three convenient ways to open and read Jupyter notebooks in **pynb**:
 - **Search in Notebook**: Tap the magnifying glass icon in the top toolbar to search across cell code and text. Use the arrows to cycle between matches.
 - **Font Size Scaling**: Use `A+` or `A-` from the top menu to adjust text sizing for comfortable reading.
 - **Line Numbers**: Toggle line numbers on/off from the options menu.
+
+## Editing Cells
+
+Tap ✏️ on a markdown or code cell to open the full-screen editor.
+
+- **Code cells**: Python syntax highlighting, automatic indentation (a new line keeps the previous line's indentation and adds a level after a `:`), and a key bar with **⇥** (indent; indents every selected line), **⇤** (unindent) and symbols that are awkward on phone keyboards.
+- **Markdown cells**: a key bar with `#`, `*`, `` ` ``, `$`, `>`, `|` and brackets.
+- **✓ Done** applies the edit; **▶ Apply and run** also runs a code cell (see below). Closing with ✕ or Back asks before discarding changes.
+
+Edited cells keep their outputs until they are run again. Use **Save** to write the changes into the `.ipynb` file.
+
+## Running Cells with Termux
+
+pynb can run code cells with the Python interpreter of a virtual environment (`.venv`) in [Termux](https://termux.dev). Variables persist between cells, like in Jupyter.
+
+### One-time setup (in Termux)
+
+1. Allow other apps to start commands in Termux:
+   ```sh
+   echo "allow-external-apps=true" >> ~/.termux/termux.properties
+   termux-reload-settings
+   ```
+2. Create a virtual environment if you do not have one:
+   ```sh
+   pkg install python
+   python -m venv ~/myproject/.venv
+   ```
+   For numpy / matplotlib, install them with `pkg install python-numpy matplotlib` and create the venv with `--system-site-packages`.
+
+### Connecting
+
+1. Open a notebook and tap ▶ on a code cell (or choose **Connect to Termux .venv…** from the menu).
+2. Enter the `.venv` path, e.g. `~/myproject/.venv`. The working directory defaults to the folder that contains the `.venv`.
+3. Allow the **Run commands in Termux environment** permission when Android asks.
+
+pynb starts `<venv>/bin/python` in Termux's background and talks to it over `127.0.0.1` with a random per-session token. The toolbar shows the Python version and whether the kernel is idle or busy.
+
+### Running and saving
+
+- **▶ / ■** on a cell runs it or stops it. **Run All** runs every code cell and stops at the first error.
+- **Interrupt**, **Restart** (fresh variables) and **Disconnect** are in the menu.
+- **Save** writes your edits and outputs into the `.ipynb` file. Only changed cells are rewritten, and the file keeps Jupyter's own formatting. Notebooks that cannot be overwritten (samples, read-only files) are saved with **Save As…**.
+
+Supported: printed output, the value of the last line, `display()`, rich `_repr_*_` objects, matplotlib figures, tracebacks, `!shell commands`, `%pip`, `%cd`, `%pwd`, `%time`, `%%bash` and `%%writefile`. Outputs appear when a cell finishes (they are not streamed live), and `input()` is not supported.

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Keeps versionCode/versionName and the Fastlane changelog in sync with CHANGELOG.md
+# and adds them to the commit being made, so CI never has to commit anything.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+set -e
+cd "$(git rev-parse --show-toplevel)"
+python3 .github/scripts/update_version.py >/dev/null
+git add app/build.gradle fastlane/metadata/android/en-US/changelogs/

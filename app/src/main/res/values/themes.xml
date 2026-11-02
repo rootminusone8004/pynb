@@ -31,6 +31,13 @@
         <item name="colorOnSurface">@color/text_primary_light</item>
     </style>
 
+    <!-- Full-screen cell editor -->
+    <style name="Theme.Pynb.FullScreenDialog" parent="Theme.Pynb">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
     <style name="ShapeAppearance.RoundedTop" parent="ShapeAppearance.Material3.Corner.Large">
         <item name="cornerSizeTopLeft">24dp</item>
         <item name="cornerSizeTopRight">24dp</item>

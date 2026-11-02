@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-03
+### Added
+- **Run cells with Termux**: Connect to a Python `.venv` in Termux and run code cells (▶ per cell, Run All, Interrupt, Restart). Supports printed output, results, `display()`, matplotlib figures, errors, `!shell`, `%pip` and `%cd`.
+- **Edit cells**: ✏️ on markdown and code cells opens a full-screen editor. Code gets Python highlighting, auto-indent and a key bar (Tab, unindent, brackets, quotes); markdown gets a markdown key bar. "Apply and run" runs the edited code cell.
+- **Save / Save As**: Save edits and executed outputs back into the `.ipynb` file. Only the cells you changed are rewritten, and the file keeps Jupyter's formatting.
+
+### Changed
+- **Release automation**: The version bump and Fastlane changelog are now made by a git pre-commit hook in your own commit; CI only checks them and no longer commits.
+
 ## [1.2.0] - 2026-11-02
 ### Changed
 - **App color**: Switched to Budjet's deep orange tone (`#E44919`).

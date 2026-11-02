@@ -15,6 +15,8 @@ public class Notebook implements Serializable {
     private int nbformatMinor = 2;
     private NotebookMetadata metadata = new NotebookMetadata();
     private List<NotebookCell> cells = new ArrayList<>();
+    /** Original notebook JSON, so saving keeps everything this app does not model. */
+    private transient org.json.JSONObject rawJson;
 
     private static final Pattern HEADING_PATTERN = Pattern.compile("(?m)^(#{1,6})\\s+([^#\\n]+)");
 
@@ -50,6 +52,14 @@ public class Notebook implements Serializable {
 
     public void setMetadata(NotebookMetadata metadata) {
         this.metadata = metadata != null ? metadata : new NotebookMetadata();
+    }
+
+    public org.json.JSONObject getRawJson() {
+        return rawJson;
+    }
+
+    public void setRawJson(org.json.JSONObject rawJson) {
+        this.rawJson = rawJson;
     }
 
     public List<NotebookCell> getCells() {

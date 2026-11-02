@@ -18,6 +18,8 @@ public class CellOutput implements Serializable {
     private String evalue;
     private List<String> traceback;
     private Map<String, String> data = new HashMap<>();
+    /** Original nbformat JSON of this output, written back unchanged when saving. */
+    private transient org.json.JSONObject rawJson;
 
     public CellOutput() {}
 
@@ -83,6 +85,14 @@ public class CellOutput implements Serializable {
 
     public void setData(Map<String, String> data) {
         this.data = data;
+    }
+
+    public org.json.JSONObject getRawJson() {
+        return rawJson;
+    }
+
+    public void setRawJson(org.json.JSONObject rawJson) {
+        this.rawJson = rawJson;
     }
 
     public boolean isStream() {

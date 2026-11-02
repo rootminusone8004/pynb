@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Automatic versioning for the GitHub Actions release pipeline.
+Automatic versioning, run by the git pre-commit hook (.githooks/pre-commit) so the
+version bump and Fastlane changelog land in your own commit.
+
+  python3 .github/scripts/update_version.py           # update files (pre-commit hook)
+  python3 .github/scripts/update_version.py --check   # CI: fail if files are out of date
 
 1. Resolves the release version:
    - a pushed tag ``vX.Y.Z`` wins;
@@ -12,6 +16,8 @@ Automatic versioning for the GitHub Actions release pipeline.
 4. Writes that version's CHANGELOG.md section, as plain text, to
    ``fastlane/metadata/android/en-US/changelogs/<versionCode>.txt``
    (the file F-Droid and Google Play read for "What's new").
+
+In --check mode nothing is written; the script fails if a file would change.
 
 Outputs (GITHUB_OUTPUT): version, version_code, tag_name, changed.
 """
@@ -103,6 +109,18 @@ def truncate(text, limit):
     return "\n".join(kept + ["..."])
 
 
+CHECK_ONLY = "--check" in sys.argv[1:]
+STALE = []
+
+
+def write_text(path, content):
+    if CHECK_ONLY:
+        STALE.append(str(path))
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+
 def update_build_gradle(path, version, version_code):
     text = path.read_text(encoding="utf-8")
     current = re.search(r"^\s*versionCode\s+(\d+)\s*$", text, re.MULTILINE)
@@ -114,7 +132,7 @@ def update_build_gradle(path, version, version_code):
     new = re.sub(r"^(\s*versionCode\s+)\d+\s*$", rf"\g<1>{version_code}", text, count=1, flags=re.MULTILINE)
     new = re.sub(r'^(\s*versionName\s+)"[^"]*"\s*$', rf'\g<1>"{version}"', new, count=1, flags=re.MULTILINE)
     if new != text:
-        path.write_text(new, encoding="utf-8")
+        write_text(path, new)
         return True
     return False
 
@@ -122,8 +140,7 @@ def update_build_gradle(path, version, version_code):
 def write_if_changed(path, content):
     if path.exists() and path.read_text(encoding="utf-8") == content:
         return False
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    write_text(path, content)
     return True
 
 
@@ -154,7 +171,14 @@ def main():
 
     print(f"versionName: {version}")
     print(f"versionCode: {version_code}")
-    print(f"Files changed: {changed}")
+    if CHECK_ONLY:
+        if STALE:
+            fail("Version files are out of date: " + ", ".join(STALE)
+                 + ". Run 'python3 .github/scripts/update_version.py' (or enable the hook with "
+                 + "'git config core.hooksPath .githooks') and commit the result.")
+        print("Version files are up to date")
+    else:
+        print(f"Files changed: {changed}")
 
 
 if __name__ == "__main__":
