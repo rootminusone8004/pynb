@@ -43,6 +43,39 @@
             android:hint="@string/editor_hint" />
     </ScrollView>
 
+    <!-- Parameters of the function being called, from the connected kernel; hidden outside calls -->
+    <TextView
+        android:id="@+id/tvSignature"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_variant_light"
+        android:fontFamily="monospace"
+        android:maxLines="4"
+        android:ellipsize="end"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:textColor="@color/text_secondary_light"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <!-- Completions from the connected kernel (Termux or SSH); hidden when there are none -->
+    <HorizontalScrollView
+        android:id="@+id/suggestionScroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_light"
+        android:scrollbars="none"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/layoutSuggestions"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4dp" />
+    </HorizontalScrollView>
+
     <!-- Extra keys that are awkward to reach on phone keyboards -->
     <HorizontalScrollView
         android:layout_width="match_parent"

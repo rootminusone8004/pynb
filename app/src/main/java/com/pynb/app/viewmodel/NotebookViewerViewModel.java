@@ -8,7 +8,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.pynb.app.kernel.TermuxKernel;
+import com.pynb.app.kernel.KernelManager;
 import com.pynb.app.model.CellOutput;
 import com.pynb.app.model.Notebook;
 import com.pynb.app.model.NotebookCell;
@@ -239,7 +239,7 @@ public class NotebookViewerViewModel extends AndroidViewModel {
 
     // ------------------------------------------------------------------ execution
 
-    /** Queues one code cell for execution on the connected Termux kernel. */
+    /** Queues one code cell for execution on the connected kernel (Termux or SSH). */
     public void runCell(int index) {
         runCells(Collections.singletonList(index), true);
     }
@@ -289,7 +289,7 @@ public class NotebookViewerViewModel extends AndroidViewModel {
 
     private boolean executeCell(NotebookCell cell) {
         try {
-            JSONObject reply = TermuxKernel.get(getApplication()).execute(cell.getSource());
+            JSONObject reply = KernelManager.get(getApplication()).execute(cell.getSource());
             List<CellOutput> outputs = new ArrayList<>();
             JSONArray array = reply.optJSONArray("outputs");
             if (array != null) {
@@ -328,7 +328,7 @@ public class NotebookViewerViewModel extends AndroidViewModel {
     /** Interrupts the running cell and drops the queued ones. */
     public void interrupt() {
         cancelQueued = true;
-        TermuxKernel.get(getApplication()).interrupt();
+        KernelManager.get(getApplication()).interrupt();
     }
 
     private void markChanged(int index) {

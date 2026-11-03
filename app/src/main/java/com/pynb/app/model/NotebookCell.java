@@ -15,7 +15,7 @@ public class NotebookCell implements Serializable {
     private boolean isCollapsed = false;
     private int cellIndex = 0;
 
-    /** Execution state while a Termux kernel runs this cell (not saved). */
+    /** Execution state while a kernel (Termux or SSH) runs this cell (not saved). */
     public enum RunState { IDLE, QUEUED, RUNNING }
 
     private transient RunState runState = RunState.IDLE;

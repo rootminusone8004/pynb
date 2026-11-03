@@ -54,6 +54,10 @@ Tap ✏️ on a markdown or code cell to open the full-screen editor.
 
 Edited cells keep their outputs until they are run again. Use **Save** to write the changes into the `.ipynb` file.
 
+### Code suggestions
+
+When a kernel is connected (Termux or SSH server), typing in a code cell's editor shows suggestions in a strip above the key bar. Tap one to insert it. They come from the running Python session: variables defined by earlier cells and their attributes (`df.` → `head`, `describe`…), functions, keywords, builtins, and installed modules after `import` / `from … import`. Inside a call, a bar shows the function's parameters with the one you are typing highlighted. For example, typing `range(1, ` shows `range(start, stop[, step])` with `stop` highlighted. The bar goes away when you type `)`. Suggestions and hints only appear while connected. A kernel started by an older pynb version has no suggestions until you **Disconnect** and connect again.
+
 ## Running Cells with Termux
 
 pynb can run code cells with the Python interpreter of a virtual environment (`.venv`) in [Termux](https://termux.dev). Variables persist between cells, like in Jupyter.
@@ -74,11 +78,40 @@ pynb can run code cells with the Python interpreter of a virtual environment (`.
 
 ### Connecting
 
-1. Open a notebook and tap ▶ on a code cell (or choose **Connect to Termux .venv…** from the menu).
+1. Open a notebook and tap ▶ on a code cell (or choose **Connect to Python…** from the menu), and pick **Termux**.
 2. Enter the `.venv` path, e.g. `~/myproject/.venv`. The working directory defaults to the folder that contains the `.venv`.
 3. Allow the **Run commands in Termux environment** permission when Android asks.
 
 pynb starts `<venv>/bin/python` in Termux's background and talks to it over `127.0.0.1` with a random per-session token. The toolbar shows the Python version and whether the kernel is idle or busy.
+
+## Running Cells on an SSH Server (AWS EC2, VPS…)
+
+Cells can also run on a Linux or macOS server you can reach over SSH, with the Python of a `.venv` on that server.
+
+### One-time setup (on the server)
+
+```bash
+python3 -m venv ~/myproject/.venv
+~/myproject/.venv/bin/pip install numpy pandas matplotlib   # whatever your notebooks need
+```
+
+For AWS EC2, the security group only needs inbound **SSH (port 22)**. The kernel is never exposed to the internet.
+
+### Connecting
+
+1. Choose **Connect to Python…** and pick **SSH server**.
+2. Enter the host (e.g. `ec2-1-2-3-4.compute.amazonaws.com`), port and user. On EC2 the user is usually `ec2-user` (Amazon Linux), `ubuntu` (Ubuntu) or `admin` (Debian).
+3. Choose **Private key** and select your key file (the EC2 `.pem`, `id_ed25519`, `id_rsa`…; add its passphrase if it has one), or choose **Password**.
+4. Enter the `.venv` path on the server, e.g. `~/myproject/.venv`.
+5. The first time, pynb shows the server's host-key fingerprint. Compare it with the server's own (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`) and tap **Trust and connect**. If the key changes later, pynb warns you before connecting.
+
+pynb copies its small kernel script to `~/.pynb/` on the server, starts it with `<venv>/bin/python` listening only on the server's `127.0.0.1`, and reaches it through an SSH port forward. Servers are saved for next time; keys and passwords are encrypted with the Android Keystore. **Forget this server** removes a server and its credentials.
+
+Good to know:
+
+- Code, files, `!shell`, `%pip` and `%cd` act on the **server**. The notebook itself is still saved on your phone.
+- The server kernel keeps running if the connection drops or the app is closed (it stops by itself after 4 hours idle). pynb reconnects to it automatically, so your variables are kept. If the connection drops *while* a cell runs, that cell's output is lost.
+- The server needs `sh` and must allow SSH port forwarding (`AllowTcpForwarding`, on by default). Windows servers, PuTTY `.ppk` keys (convert them with `puttygen key.ppk -O private-openssh -o key.pem`) and two-factor prompts are not supported.
 
 ### Running and saving
 

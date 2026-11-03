@@ -26,6 +26,6 @@ public class TermuxResultReceiver extends BroadcastReceiver {
         int exitCode = result.getInt("exitCode", -1);
         int err = result.getInt("err", -1);
         String errmsg = result.getString("errmsg", "");
-        TermuxKernel.get(context).onProcessFinished(session, exitCode, err, errmsg, stdout, stderr);
+        KernelManager.get(context).onProcessFinished(session, exitCode, err, errmsg, stdout, stderr);
     }
 }

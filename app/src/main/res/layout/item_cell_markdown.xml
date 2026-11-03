@@ -81,15 +81,24 @@
 
         </LinearLayout>
 
-        <!-- Rendered Markdown View -->
-        <TextView
-            android:id="@+id/tvMarkdownRendered"
+        <!-- Rendered Markdown. Cells with ```mermaid blocks hide tvMarkdownRendered and
+             get one view per Markdown part / diagram appended after it. -->
+        <LinearLayout
+            android:id="@+id/layoutMarkdownRendered"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_primary_light"
-            android:textSize="14sp"
-            android:lineSpacingMultiplier="1.2"
-            tools:text="## 1. Introduction\nThis is a sample markdown description." />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvMarkdownRendered"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary_light"
+                android:textSize="14sp"
+                android:lineSpacingMultiplier="1.2"
+                tools:text="## 1. Introduction\nThis is a sample markdown description." />
+
+        </LinearLayout>
 
         <!-- Raw Markdown Source View (hidden by default) -->
         <TextView

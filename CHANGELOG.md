@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-04
+### Added
+- **Code suggestions**: While editing a code cell, a suggestion strip above the key bar offers completions from the connected kernel (Termux or SSH server): your variables and their attributes, functions, keywords, builtins, and importable modules for `import` / `from … import`. They come from the live session, so they know what earlier cells defined, and they work while a cell is running. Nothing is added to the app; without a connected kernel no suggestions are shown.
+- **Parameter hints**: Typing `(` after a function (e.g. `range(`) shows its parameters above the suggestions, with the one you are typing highlighted. The hint follows `,` and `name=` arguments, picks the matching form for functions with several (like `range(stop)` / `range(start, stop[, step])`), shows the first line of the docstring, and disappears when `)` closes the call. It also comes from the connected kernel.
+- **Run cells on an SSH server**: Connect to a `.venv` on AWS EC2, a VPS or any Linux/macOS server with a private key (`.pem`, ed25519, RSA, ECDSA; passphrases supported) or a password. The kernel listens only on the server's localhost and is reached through an SSH tunnel, keeps running across connection drops, and pynb reconnects to it automatically. Servers are saved, credentials are encrypted with the Android Keystore, and host keys are verified (trust on first use, with a warning if a key changes).
+- **Mermaid diagrams**: ```` ```mermaid ```` blocks in markdown cells now render as diagrams (flowcharts, sequence, class, state, Gantt, pie, ...). Rendering is fully offline, follows the light/dark theme, shows parse errors inline, and tapping a diagram opens it in the zoomable image viewer.
+
 ## [1.3.0] - 2026-11-03
 ### Added
 - **Run cells with Termux**: Connect to a Python `.venv` in Termux and run code cells (▶ per cell, Run All, Interrupt, Restart). Supports printed output, results, `display()`, matplotlib figures, errors, `!shell`, `%pip` and `%cd`.

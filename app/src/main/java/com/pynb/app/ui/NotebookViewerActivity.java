@@ -25,9 +25,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.pynb.app.R;
 import com.pynb.app.adapter.NotebookAdapter;
 import com.pynb.app.databinding.ActivityNotebookViewerBinding;
-import com.pynb.app.databinding.DialogKernelConnectBinding;
 import com.pynb.app.kernel.KernelState;
-import com.pynb.app.kernel.TermuxKernel;
+import com.pynb.app.kernel.KernelManager;
+import com.pynb.app.kernel.KnownHosts;
 import com.pynb.app.model.Notebook;
 import com.pynb.app.model.NotebookCell;
 import com.pynb.app.util.FileUtils;
@@ -48,12 +48,14 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
     private String targetAssetPath;
     private String notebookTitle = "Notebook";
 
-    private TermuxKernel kernel;
+    private KernelManager kernel;
     /** Cell to run once the kernel connects (-1: none). */
     private int pendingRunCell = -1;
     private String pendingVenv;
     private String pendingWorkDir;
     private String lastShownKernelError;
+    /** The open connect dialog, which receives the picked SSH key file. */
+    private KernelConnectDialog connectDialog;
     private Runnable afterSave;
 
     private final ActivityResultLauncher<String> runCommandPermission =
@@ -68,6 +70,11 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
                             .setPositiveButton(android.R.string.ok, null)
                             .show();
                 }
+            });
+
+    private final ActivityResultLauncher<String[]> sshKeyPicker =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (connectDialog != null) connectDialog.onKeyFilePicked(uri);
             });
 
     private final ActivityResultLauncher<String> saveAsLauncher =
@@ -124,7 +131,7 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
         binding.viewerToolbar.setNavigationOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
         getOnBackPressedDispatcher().addCallback(this, unsavedCallback);
 
-        kernel = TermuxKernel.get(this);
+        kernel = KernelManager.get(this);
         kernel.tryReattach();
 
         parseIntent();
@@ -330,11 +337,17 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
         kernel.getState().observe(this, state -> {
             updateSubtitle();
             invalidateOptionsMenu();
-            if (state.status == KernelState.Status.IDLE && pendingRunCell >= 0) {
+            if (state.status == KernelState.Status.CONNECTING) {
+                lastShownKernelError = null;
+            } else if (state.status == KernelState.Status.IDLE && pendingRunCell >= 0) {
                 int index = pendingRunCell;
                 pendingRunCell = -1;
                 viewModel.runCell(index);
-            } else if (state.status == KernelState.Status.ERROR && state.message != null
+            } else if (state.status == KernelState.Status.ERROR && state.hostKeyPrompt != null
+                    && !state.hostKeyPrompt.fingerprint.equals(lastShownKernelError)) {
+                lastShownKernelError = state.hostKeyPrompt.fingerprint;
+                showHostKeyPrompt(state.hostKeyPrompt, state.target);
+            } else if (state.status == KernelState.Status.ERROR && state.hostKeyPrompt == null && state.message != null
                     && !state.message.equals(lastShownKernelError)) {
                 lastShownKernelError = state.message;
                 pendingRunCell = -1;
@@ -382,7 +395,7 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
         runCell(cellIndex);
     }
 
-    // ------------------------------------------------------------------ Termux kernel
+    // ------------------------------------------------------------------ kernel (Termux / SSH)
 
     private void runCell(int cellIndex) {
         if (kernel.currentState().isConnected()) {
@@ -396,39 +409,54 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
     }
 
     private void showConnectDialog() {
-        if (!TermuxKernel.isTermuxInstalled(this)) {
-            pendingRunCell = -1;
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.kernel_connect_title)
-                    .setMessage(R.string.kernel_termux_missing)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show();
-            return;
+        connectDialog = new KernelConnectDialog(this, kernel, new KernelConnectDialog.Host() {
+            @Override
+            public void requestKeyFile() {
+                // Keys have no reliable MIME type (.pem, id_ed25519…), so allow any file.
+                sshKeyPicker.launch(new String[]{"*/*"});
+            }
+
+            @Override
+            public void connectTermux(@NonNull String venv, @NonNull String workDir) {
+                connectDialog = null;
+                lastShownKernelError = null;
+                if (KernelManager.hasRunCommandPermission(NotebookViewerActivity.this)) {
+                    kernel.connect(venv, workDir);
+                } else {
+                    pendingVenv = venv;
+                    pendingWorkDir = workDir;
+                    runCommandPermission.launch(KernelManager.PERMISSION_RUN_COMMAND);
+                }
+            }
+
+            @Override
+            public void onConnectCancelled() {
+                connectDialog = null;
+                pendingRunCell = -1;
+            }
+        });
+        connectDialog.show();
+    }
+
+    /** Asks the user to verify an SSH server's host key (first connection, or a changed key). */
+    private void showHostKeyPrompt(@NonNull KnownHosts.Prompt prompt, String target) {
+        String name = target != null ? target : prompt.host;
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
+        if (prompt.isChanged()) {
+            builder.setTitle(R.string.ssh_changed_title)
+                    .setMessage(getString(R.string.ssh_changed_message, name, prompt.previousFingerprint,
+                            prompt.keyType, prompt.fingerprint))
+                    .setPositiveButton(R.string.ssh_trust_new_key, (d, w) -> kernel.trustHostKeyAndRetry(prompt));
+        } else {
+            builder.setTitle(R.string.ssh_trust_title)
+                    .setMessage(getString(R.string.ssh_trust_message, name, prompt.keyType, prompt.fingerprint))
+                    .setPositiveButton(R.string.ssh_trust, (d, w) -> kernel.trustHostKeyAndRetry(prompt));
         }
-        DialogKernelConnectBinding dialogBinding = DialogKernelConnectBinding.inflate(getLayoutInflater());
-        dialogBinding.etVenv.setText(kernel.getSavedVenvPath());
-        dialogBinding.etWorkDir.setText(kernel.getSavedWorkDir());
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.kernel_connect_title)
-                .setView(dialogBinding.getRoot())
-                .setPositiveButton(R.string.kernel_connect, (d, w) -> {
-                    String venv = dialogBinding.etVenv.getText() != null ? dialogBinding.etVenv.getText().toString().trim() : "";
-                    String workDir = dialogBinding.etWorkDir.getText() != null ? dialogBinding.etWorkDir.getText().toString().trim() : "";
-                    if (venv.isEmpty()) {
-                        pendingRunCell = -1;
-                        return;
-                    }
-                    lastShownKernelError = null;
-                    if (TermuxKernel.hasRunCommandPermission(this)) {
-                        kernel.connect(venv, workDir);
-                    } else {
-                        pendingVenv = venv;
-                        pendingWorkDir = workDir;
-                        runCommandPermission.launch(TermuxKernel.PERMISSION_RUN_COMMAND);
-                    }
+        builder.setNegativeButton(R.string.cancel, (d, w) -> {
+                    pendingRunCell = -1;
+                    kernel.disconnect();
                 })
-                .setNegativeButton(R.string.cancel, (d, w) -> pendingRunCell = -1)
-                .setOnCancelListener(d -> pendingRunCell = -1)
+                .setCancelable(false)
                 .show();
     }
 
@@ -496,7 +524,7 @@ public class NotebookViewerActivity extends AppCompatActivity implements CellEdi
         KernelState state = kernel.currentState();
         boolean connected = state.isConnected();
         menu.findItem(R.id.action_kernel_connect).setTitle(connected
-                ? "Reconnect / change .venv…" : "Connect to Termux .venv…");
+                ? "Reconnect / change kernel…" : "Connect to Python…");
         menu.findItem(R.id.action_kernel_interrupt).setVisible(connected);
         menu.findItem(R.id.action_kernel_restart).setVisible(connected);
         menu.findItem(R.id.action_kernel_disconnect).setVisible(connected || state.status == KernelState.Status.CONNECTING);

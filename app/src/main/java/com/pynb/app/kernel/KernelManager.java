@@ -28,17 +28,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * App-wide connection to a Python kernel running in Termux with the interpreter of a
- * user-chosen {@code .venv}.
+ * App-wide connection to a Python kernel (assets/kernel/pynb_kernel.py) running with the
+ * interpreter of a user-chosen {@code .venv}, either in Termux on this phone or on a server
+ * reached over SSH.
  *
- * <p>The kernel is started through Termux's documented RUN_COMMAND intent
+ * <p><b>Termux:</b> the kernel is started through Termux's documented RUN_COMMAND intent
  * (https://github.com/termux/termux-app/wiki/RUN_COMMAND-Intent), which requires the
  * {@code com.termux.permission.RUN_COMMAND} permission and {@code allow-external-apps=true}
  * in {@code ~/.termux/termux.properties}. It then talks to the kernel over 127.0.0.1.</p>
+ *
+ * <p><b>SSH:</b> the kernel is started on the server with {@link RemoteScript}, listening on the
+ * server's 127.0.0.1 only, and reached through an SSH local port forward. It outlives the SSH
+ * connection (until its idle timeout), so pynb can reconnect after network drops or restarts.</p>
  */
-public final class TermuxKernel {
+public final class KernelManager {
 
-    private static final String TAG = "TermuxKernel";
+    private static final String TAG = "KernelManager";
 
     public static final String TERMUX_PACKAGE = "com.termux";
     public static final String PERMISSION_RUN_COMMAND = "com.termux.permission.RUN_COMMAND";
@@ -59,10 +64,15 @@ public final class TermuxKernel {
     private static final String PREF_WORKDIR = "work_dir";
     private static final String PREF_PORT = "session_port";
     private static final String PREF_TOKEN = "session_token";
+    private static final String PREF_BACKEND = "backend";            // "termux" | "ssh"
+    private static final String PREF_SSH_PROFILE = "ssh_profile";
+    private static final String PREF_SSH_REMOTE_PORT = "ssh_remote_port";
+    private static final String PREF_SSH_SESSION = "ssh_session";
+    private static final String BACKEND_SSH = "ssh";
 
     private static final long START_TIMEOUT_MS = 30000;
 
-    private static volatile TermuxKernel instance;
+    private static volatile KernelManager instance;
 
     private final Context appContext;
     private final SharedPreferences prefs;
@@ -73,20 +83,40 @@ public final class TermuxKernel {
     private volatile String session;
     private volatile String processFailure;
 
-    public static TermuxKernel get(@NonNull Context context) {
+    private final SshProfileStore sshProfiles;
+    private final KnownHosts knownHosts;
+    /** Open SSH session while connected to a remote kernel (null for Termux). */
+    private volatile SshConnection ssh;
+    private volatile int sshRemotePort;
+    private volatile String sshSession;
+    /** Profile of the last SSH connect attempt, retried after the user trusts its host key. */
+    private volatile SshProfile lastSshAttempt;
+
+    public static KernelManager get(@NonNull Context context) {
         if (instance == null) {
-            synchronized (TermuxKernel.class) {
+            synchronized (KernelManager.class) {
                 if (instance == null) {
-                    instance = new TermuxKernel(context.getApplicationContext());
+                    instance = new KernelManager(context.getApplicationContext());
                 }
             }
         }
         return instance;
     }
 
-    private TermuxKernel(Context appContext) {
+    private KernelManager(Context appContext) {
         this.appContext = appContext;
         this.prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.sshProfiles = SshProfileStore.get(appContext);
+        this.knownHosts = new KnownHosts(appContext);
+    }
+
+    public SshProfileStore getSshProfiles() {
+        return sshProfiles;
+    }
+
+    /** True when the last kernel the user connected to was an SSH server. */
+    public boolean lastUsedSsh() {
+        return BACKEND_SSH.equals(prefs.getString(PREF_BACKEND, ""));
     }
 
     public LiveData<KernelState> getState() {
@@ -146,6 +176,10 @@ public final class TermuxKernel {
         if (client != null || currentState().status == KernelState.Status.CONNECTING) {
             return;
         }
+        if (BACKEND_SSH.equals(prefs.getString(PREF_BACKEND, ""))) {
+            reattachSsh();
+            return;
+        }
         int port = prefs.getInt(PREF_PORT, 0);
         String token = prefs.getString(PREF_TOKEN, null);
         if (port <= 0 || token == null) {
@@ -161,6 +195,41 @@ public final class TermuxKernel {
                         null, info.optString("python_version"), getSavedVenvPath()));
             } catch (Exception e) {
                 prefs.edit().remove(PREF_PORT).remove(PREF_TOKEN).apply();
+            }
+        });
+    }
+
+    private void reattachSsh() {
+        SshProfile profile = sshProfiles.find(prefs.getString(PREF_SSH_PROFILE, null));
+        int remotePort = prefs.getInt(PREF_SSH_REMOTE_PORT, 0);
+        String token = prefs.getString(PREF_TOKEN, null);
+        String sid = prefs.getString(PREF_SSH_SESSION, null);
+        if (profile == null || remotePort <= 0 || token == null || sid == null) {
+            return;
+        }
+        controlExecutor.execute(() -> {
+            if (client != null) return;
+            SshConnection conn = null;
+            try {
+                conn = SshConnection.open(profile, sshProfiles, knownHosts);
+                KernelClient candidate = new KernelClient(conn.forward(remotePort), token);
+                JSONObject info = candidate.info();
+                ssh = conn;
+                sshRemotePort = remotePort;
+                sshSession = sid;
+                client = candidate;
+                state.postValue(new KernelState(
+                        info.optBoolean("busy") ? KernelState.Status.BUSY : KernelState.Status.IDLE,
+                        null, info.optString("python_version"), profile.venv, profile.id(), null));
+            } catch (KnownHosts.UnverifiedHostException | IOException e) {
+                // Offline, or the kernel is gone. Stay quiet; a server-side kernel idles out by itself.
+                if (conn != null) {
+                    conn.close();
+                    clearSession(); // SSH worked, so the kernel itself is gone
+                }
+            } catch (Exception e) {
+                if (conn != null) conn.close();
+                clearSession();
             }
         });
     }
@@ -233,7 +302,8 @@ public final class TermuxKernel {
             try {
                 JSONObject info = candidate.info();
                 client = candidate;
-                prefs.edit().putInt(PREF_PORT, port).putString(PREF_TOKEN, token).apply();
+                prefs.edit().putInt(PREF_PORT, port).putString(PREF_TOKEN, token)
+                        .putString(PREF_BACKEND, "termux").apply();
                 state.postValue(new KernelState(KernelState.Status.IDLE, null,
                         info.optString("python_version"), venvLabel));
                 return;
@@ -244,6 +314,101 @@ public final class TermuxKernel {
         throw new IllegalStateException("The kernel did not start within "
                 + (START_TIMEOUT_MS / 1000) + " s. Open Termux to check for errors, and make sure "
                 + "allow-external-apps=true is set in ~/.termux/termux.properties.");
+    }
+
+    // ------------------------------------------------------------------ SSH
+
+    /**
+     * Starts a kernel on an SSH server with the profile's remote .venv. Save the profile and its
+     * credentials in {@link #getSshProfiles()} first.
+     */
+    public void connectSsh(@NonNull SshProfile profile) {
+        lastSshAttempt = profile;
+        prefs.edit().putString(PREF_BACKEND, BACKEND_SSH).apply();
+        state.setValue(new KernelState(KernelState.Status.CONNECTING, null, null, profile.venv, profile.id(), null));
+        controlExecutor.execute(() -> {
+            shutdownQuietly();
+            try {
+                doConnectSsh(profile);
+            } catch (KnownHosts.UnverifiedHostException e) {
+                state.postValue(new KernelState(KernelState.Status.ERROR, e.getMessage(), null,
+                        profile.venv, profile.id(), e.prompt));
+            } catch (Exception e) {
+                Log.w(TAG, "SSH kernel start failed", e);
+                client = null;
+                state.postValue(new KernelState(KernelState.Status.ERROR,
+                        e.getMessage() != null ? e.getMessage() : e.toString(), null, profile.venv, profile.id(), null));
+            }
+        });
+    }
+
+    /** Pins the host key the user just confirmed and retries the SSH connection. */
+    public void trustHostKeyAndRetry(@NonNull KnownHosts.Prompt prompt) {
+        knownHosts.trust(prompt);
+        SshProfile profile = lastSshAttempt;
+        if (profile != null) connectSsh(profile);
+    }
+
+    private void doConnectSsh(SshProfile profile) throws Exception {
+        SshConnection conn = SshConnection.open(profile, sshProfiles, knownHosts);
+        try {
+            String token = newToken();
+            String sid = newToken().substring(0, 12);
+            String script = RemoteScript.startScript(profile.venv, profile.workDir, readKernelScript(), token, sid);
+            int remotePort = RemoteScript.parsePort(conn.exec("sh -s", script.getBytes(StandardCharsets.UTF_8)));
+            KernelClient candidate = new KernelClient(conn.forward(remotePort), token);
+
+            JSONObject info = null;
+            IOException last = null;
+            for (int attempt = 0; attempt < 10 && info == null; attempt++) {
+                try {
+                    info = candidate.info();
+                } catch (IOException e) {
+                    last = e;
+                    SystemClock.sleep(300);
+                }
+            }
+            if (info == null) {
+                throw new IOException("The kernel started on the server but could not be reached through SSH"
+                        + (last != null ? ": " + last.getMessage() : "") + ". The server may forbid port "
+                        + "forwarding (AllowTcpForwarding in sshd_config).", last);
+            }
+            ssh = conn;
+            sshRemotePort = remotePort;
+            sshSession = sid;
+            client = candidate;
+            prefs.edit().putString(PREF_BACKEND, BACKEND_SSH).putString(PREF_SSH_PROFILE, profile.id())
+                    .putInt(PREF_SSH_REMOTE_PORT, remotePort).putString(PREF_SSH_SESSION, sid)
+                    .putString(PREF_TOKEN, token).remove(PREF_PORT).apply();
+            state.postValue(new KernelState(KernelState.Status.IDLE, null,
+                    info.optString("python_version"), profile.venv, profile.id(), null));
+        } catch (Exception e) {
+            if (ssh != conn) conn.close();
+            throw e;
+        }
+    }
+
+    /**
+     * After a request failed: if the SSH session dropped, opens a new one to the same remote
+     * kernel. Returns the new client, or null when the kernel can't be reached any more.
+     */
+    @Nullable
+    private synchronized KernelClient recoverSsh(KernelClient failed) {
+        SshConnection conn = ssh;
+        if (conn == null || client != failed) return null;
+        if (conn.isConnected()) return null; // tunnel is fine; the kernel itself failed
+        conn.close();
+        try {
+            SshConnection fresh = SshConnection.open(conn.profile(), sshProfiles, knownHosts);
+            KernelClient c = new KernelClient(fresh.forward(sshRemotePort), failed.getToken());
+            c.info();
+            ssh = fresh;
+            client = c;
+            return c;
+        } catch (Exception e) {
+            Log.w(TAG, "SSH reconnect failed", e);
+            return null;
+        }
     }
 
     private PendingIntent resultIntent(String sessionId) {
@@ -287,24 +452,53 @@ public final class TermuxKernel {
     public JSONObject execute(String code) throws Exception {
         KernelClient c = client;
         if (c == null) {
-            throw new IllegalStateException("Not connected to a Termux kernel");
+            throw new IllegalStateException("Not connected to a Python kernel");
         }
         KernelState before = currentState();
         state.postValue(before.with(KernelState.Status.BUSY));
         try {
             return c.execute(code);
         } catch (IOException e) {
+            if (ssh != null) {
+                KernelClient recovered = recoverSsh(c);
+                if (recovered != null) {
+                    state.postValue(before.with(KernelState.Status.IDLE));
+                    throw new IOException("The connection to " + before.target + " dropped while the cell was "
+                            + "running. pynb reconnected; the cell may still be running on the server, but its "
+                            + "output is lost. Run it again if needed.", e);
+                }
+            }
             // the kernel is gone (killed, phone slept the process away...)
             if (!isAlive(c)) {
                 client = null;
+                closeSsh(false);
                 state.postValue(new KernelState(KernelState.Status.ERROR,
-                        "Lost connection to the kernel: " + e.getMessage(), null, before.venvPath));
+                        "Lost connection to the kernel: " + e.getMessage(), null, before.venvPath,
+                        before.target, null));
             }
             throw e;
         } finally {
             if (client == c) {
                 state.postValue(before.with(KernelState.Status.IDLE));
             }
+        }
+    }
+
+    /**
+     * Asks the connected kernel for completions; blocks, call off the main thread.
+     *
+     * @param cursor offset into {@code code} in code points (Python string indexing)
+     * @return the kernel's reply ({@code matches}, {@code prefix_length}), or null when not
+     *         connected or the kernel can't answer. Never changes the connection state.
+     */
+    @Nullable
+    public JSONObject complete(String code, int cursor) {
+        KernelClient c = client;
+        if (c == null) return null;
+        try {
+            return c.complete(code, cursor);
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -353,13 +547,36 @@ public final class TermuxKernel {
         KernelClient c = client;
         client = null;
         session = null;
-        prefs.edit().remove(PREF_PORT).remove(PREF_TOKEN).apply();
+        clearSession();
         if (c != null) {
             try {
                 c.shutdown();
             } catch (Exception ignored) {
             }
         }
+        closeSsh(true);
+    }
+
+    /** Closes the SSH session, optionally deleting the session's files on the server first. */
+    private void closeSsh(boolean cleanup) {
+        SshConnection conn = ssh;
+        String sid = sshSession;
+        ssh = null;
+        sshSession = null;
+        if (conn == null) return;
+        if (cleanup && sid != null && conn.isConnected()) {
+            try {
+                SystemClock.sleep(300); // let the kernel exit and remove its ready file
+                conn.exec(RemoteScript.cleanupCommand(sid), null);
+            } catch (Exception ignored) {
+            }
+        }
+        conn.close();
+    }
+
+    private void clearSession() {
+        prefs.edit().remove(PREF_PORT).remove(PREF_TOKEN).remove(PREF_SSH_REMOTE_PORT)
+                .remove(PREF_SSH_SESSION).apply();
     }
 
     // ------------------------------------------------------------------ helpers

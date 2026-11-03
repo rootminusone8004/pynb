@@ -1,0 +1,3 @@
+Added
+  - Code suggestions: While editing a code cell, a suggestion strip above the key bar offers completions from the connected kernel (Termux or SSH server): your variables and their attributes, functions, keywords, builtins, and importable modules for import / from … import. They come from the live session, so they know what earlier cells defined, and they work while a cell is running. Nothing is added to the app; without a connected kernel no suggestions are shown.
+...

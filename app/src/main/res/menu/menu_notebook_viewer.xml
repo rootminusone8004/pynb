@@ -62,7 +62,7 @@
         <item
             android:id="@+id/action_kernel_connect"
             android:icon="@drawable/ic_terminal"
-            android:title="Connect to Termux .venv…"
+            android:title="Connect to Python…"
             app:showAsAction="never" />
 
         <item

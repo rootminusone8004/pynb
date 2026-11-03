@@ -7,9 +7,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -23,6 +25,7 @@ import androidx.activity.ComponentDialog;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -30,6 +33,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.pynb.app.R;
 import com.pynb.app.databinding.DialogCellEditorBinding;
+import com.pynb.app.kernel.KernelManager;
 import com.pynb.app.model.Notebook;
 import com.pynb.app.model.NotebookCell;
 import com.pynb.app.parser.PythonSyntaxHighlighter;
@@ -37,6 +41,11 @@ import com.pynb.app.viewmodel.NotebookViewerViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Full-screen editor for a markdown or code cell.
@@ -72,6 +81,15 @@ public class CellEditorDialog extends DialogFragment {
     private final Runnable highlightTask = this::applyHighlight;
     private boolean selfEdit = false;
     private int pendingIndentAt = -1;
+
+    // Completions from the connected kernel (Termux or SSH). Nothing is computed on the phone.
+    private static final long COMPLETE_DELAY_MS = 250;
+    private static final int MAX_SUGGESTIONS = 30;
+    private final ExecutorService completeExecutor = Executors.newSingleThreadExecutor();
+    private final Runnable completeTask = this::requestCompletions;
+    /** Incremented per request; replies for older requests are dropped. */
+    private int completeGeneration;
+    private boolean suppressCompletion;
 
     public static CellEditorDialog newInstance(int cellIndex) {
         CellEditorDialog dialog = new CellEditorDialog();
@@ -175,6 +193,8 @@ public class CellEditorDialog extends DialogFragment {
     @Override
     public void onDestroyView() {
         handler.removeCallbacks(highlightTask);
+        handler.removeCallbacks(completeTask);
+        completeGeneration++;
         binding = null;
         super.onDestroyView();
     }
@@ -339,7 +359,10 @@ public class CellEditorDialog extends DialogFragment {
                     }
                 }
             }
-            if (isCode) scheduleHighlight();
+            if (isCode) {
+                scheduleHighlight();
+                if (!selfEdit) scheduleCompletion();
+            }
         }
     };
 
@@ -359,6 +382,192 @@ public class CellEditorDialog extends DialogFragment {
             indent.append(INDENT);
         }
         return indent.toString();
+    }
+
+    // ------------------------------------------------------------------ completions
+
+    @Override
+    public void onDestroy() {
+        completeExecutor.shutdownNow();
+        super.onDestroy();
+    }
+
+    private void scheduleCompletion() {
+        handler.removeCallbacks(completeTask);
+        if (suppressCompletion) {
+            // A suggestion was just inserted: no new suggestions, but keep the parameter hint.
+            suppressCompletion = false;
+            hideSuggestions();
+            return;
+        }
+        if (!KernelManager.get(requireContext()).currentState().isConnected()) {
+            hideSuggestions();
+            hideSignature();
+            return;
+        }
+        handler.postDelayed(completeTask, COMPLETE_DELAY_MS);
+    }
+
+    private void requestCompletions() {
+        if (binding == null) return;
+        EditText editor = binding.etCellSource;
+        int cursor = editor.getSelectionStart();
+        if (cursor != editor.getSelectionEnd() || cursor <= 0) {
+            hideSuggestions();
+            hideSignature();
+            return;
+        }
+        String code = currentText();
+        // Name suggestions only right after a name or '.', but the parameter hint is asked for
+        // after every edit, so it updates on '(' and ',' and disappears after ')'.
+        char before = code.charAt(cursor - 1);
+        boolean wantMatches = Character.isJavaIdentifierPart(before) || before == '.';
+        if (!wantMatches) hideSuggestions();
+        int generation = ++completeGeneration;
+        int cursorCodePoints = code.codePointCount(0, cursor);
+        KernelManager kernel = KernelManager.get(requireContext());
+        completeExecutor.execute(() -> {
+            JSONObject reply = kernel.complete(code, cursorCodePoints);
+            handler.post(() -> {
+                if (binding == null || generation != completeGeneration) return;
+                // Only show results for the text and cursor they were computed for.
+                if (!code.equals(currentText()) || binding.etCellSource.getSelectionStart() != cursor) return;
+                showSignature(reply != null ? reply.optJSONObject("signature") : null);
+                if (wantMatches) showSuggestions(reply, code, cursor);
+            });
+        });
+    }
+
+    private void showSuggestions(@Nullable JSONObject reply, String code, int cursor) {
+        JSONArray matches = reply != null ? reply.optJSONArray("matches") : null;
+        int prefixCodePoints = reply != null ? reply.optInt("prefix_length", 0) : 0;
+        if (matches == null || matches.length() == 0) {
+            hideSuggestions();
+            return;
+        }
+        int start;
+        try {
+            start = Character.offsetByCodePoints(code, cursor, -prefixCodePoints);
+        } catch (IndexOutOfBoundsException e) {
+            hideSuggestions();
+            return;
+        }
+        String typed = code.substring(start, cursor);
+        if (matches.length() == 1 && typed.equals(matches.optJSONObject(0).optString("text"))) {
+            hideSuggestions(); // already fully typed
+            return;
+        }
+
+        LinearLayout bar = binding.layoutSuggestions;
+        bar.removeAllViews();
+        float density = getResources().getDisplayMetrics().density;
+        int muted = ContextCompat.getColor(requireContext(), R.color.text_muted_light);
+        for (int i = 0; i < Math.min(matches.length(), MAX_SUGGESTIONS); i++) {
+            JSONObject m = matches.optJSONObject(i);
+            if (m == null) continue;
+            String name = m.optString("text");
+            if (name.isEmpty()) continue;
+            SpannableStringBuilder label = new SpannableStringBuilder(name);
+            String tag = kindTag(m.optString("type"));
+            if (!tag.isEmpty()) {
+                int at = label.length();
+                label.append("  ").append(tag);
+                label.setSpan(new ForegroundColorSpan(muted), at, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                label.setSpan(new RelativeSizeSpan(0.8f), at, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            MaterialButton chip = new MaterialButton(requireContext(), null,
+                    com.google.android.material.R.attr.borderlessButtonStyle);
+            chip.setText(label);
+            chip.setAllCaps(false);
+            chip.setTypeface(Typeface.MONOSPACE);
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            chip.setMinWidth(0);
+            chip.setMinimumWidth(0);
+            chip.setMinHeight(0);
+            chip.setMinimumHeight(0);
+            chip.setInsetTop(0);
+            chip.setInsetBottom(0);
+            int padH = Math.round(10 * density);
+            chip.setPadding(padH, 0, padH, 0);
+            chip.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Math.round(36 * density)));
+            chip.setOnClickListener(v -> insertCompletion(code, start, cursor, name));
+            bar.addView(chip);
+        }
+        binding.suggestionScroll.scrollTo(0, 0);
+        binding.suggestionScroll.setVisibility(View.VISIBLE);
+    }
+
+    /** Replaces the typed prefix with {@code name}, if the text hasn't changed since. */
+    private void insertCompletion(String code, int start, int cursor, String name) {
+        if (binding == null) return;
+        EditText editor = binding.etCellSource;
+        Editable text = editor.getText();
+        if (text == null || !code.equals(text.toString()) || editor.getSelectionStart() != cursor) {
+            hideSuggestions();
+            return;
+        }
+        suppressCompletion = true; // don't immediately suggest again for the inserted name
+        text.replace(start, cursor, name);
+        editor.setSelection(start + name.length());
+        hideSuggestions();
+    }
+
+    /** Shows {@code range(start, stop[, step])} with the parameter being typed highlighted. */
+    private void showSignature(@Nullable JSONObject sig) {
+        if (binding == null) return;
+        String label = sig != null ? sig.optString("label", "") : "";
+        if (label.isEmpty()) {
+            hideSignature();
+            return;
+        }
+        SpannableStringBuilder text = new SpannableStringBuilder(label);
+        JSONArray params = sig.optJSONArray("params");
+        int active = sig.optInt("active", -1);
+        JSONArray span = params != null && active >= 0 ? params.optJSONArray(active) : null;
+        if (span != null) {
+            int start = span.optInt(0, -1);
+            int end = span.optInt(1, -1);
+            if (start >= 0 && end > start && end <= label.length()) {
+                // Offsets are Python string indexes (code points); convert for Java's UTF-16 string.
+                start = label.offsetByCodePoints(0, Math.min(start, label.codePointCount(0, label.length())));
+                end = label.offsetByCodePoints(0, Math.min(end, label.codePointCount(0, label.length())));
+                text.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                text.setSpan(new ForegroundColorSpan(ContextCompat.getColor(requireContext(), R.color.primaryOrange)),
+                        start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+        String doc = sig.optString("doc", "");
+        if (!doc.isEmpty()) {
+            int at = text.length();
+            text.append('\n').append(doc);
+            text.setSpan(new ForegroundColorSpan(ContextCompat.getColor(requireContext(), R.color.text_muted_light)),
+                    at, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            text.setSpan(new RelativeSizeSpan(0.85f), at, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        binding.tvSignature.setText(text);
+        binding.tvSignature.setVisibility(View.VISIBLE);
+    }
+
+    private void hideSignature() {
+        if (binding == null) return;
+        binding.tvSignature.setVisibility(View.GONE);
+    }
+
+    private void hideSuggestions() {
+        if (binding == null) return;
+        binding.suggestionScroll.setVisibility(View.GONE);
+        binding.layoutSuggestions.removeAllViews();
+    }
+
+    private static String kindTag(String type) {
+        switch (type) {
+            case "function": return "ƒ";
+            case "class": return "class";
+            case "module": return "mod";
+            case "keyword": return "kw";
+            default: return "";
+        }
     }
 
     private void scheduleHighlight() {

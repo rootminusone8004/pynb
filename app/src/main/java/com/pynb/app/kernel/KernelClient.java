@@ -19,6 +19,7 @@ public class KernelClient {
 
     private static final int CONNECT_TIMEOUT_MS = 3000;
     private static final int SHORT_READ_TIMEOUT_MS = 10000;
+    private static final int COMPLETE_READ_TIMEOUT_MS = 4000;
 
     private final int port;
     private final String token;
@@ -45,6 +46,17 @@ public class KernelClient {
         JSONObject body = new JSONObject();
         body.put("code", code);
         return request("POST", "/execute", body, 0);
+    }
+
+    /**
+     * Completions at {@code cursor} (a code point offset into {@code code}). Answers while a cell
+     * is running. Kernels older than version 2 have no /complete and answer 404 (IOException).
+     */
+    public JSONObject complete(String code, int cursor) throws IOException, JSONException {
+        JSONObject body = new JSONObject();
+        body.put("code", code);
+        body.put("cursor", cursor);
+        return request("POST", "/complete", body, COMPLETE_READ_TIMEOUT_MS);
     }
 
     public void interrupt() throws IOException, JSONException {

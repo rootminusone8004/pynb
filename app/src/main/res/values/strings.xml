@@ -31,17 +31,49 @@
     <!-- Termux kernel -->
     <string name="run_cell">Run cell</string>
     <string name="stop_cell">Stop cell</string>
-    <string name="kernel_connect_title">Connect to Termux Python</string>
+    <string name="kernel_connect_title">Connect to Python</string>
     <string name="kernel_venv_hint">.venv directory in Termux</string>
     <string name="kernel_workdir_hint">Working directory (optional)</string>
     <string name="kernel_workdir_helper">Defaults to the folder that contains the .venv</string>
     <string name="kernel_connect">Connect</string>
     <string name="kernel_setup_help">One-time setup in Termux:\n\n1. Allow other apps to run commands:\n   echo \"allow-external-apps=true\" >> ~/.termux/termux.properties\n   termux-reload-settings\n\n2. Create the virtual environment (if you have not yet):\n   python -m venv ~/myproject/.venv\n\nThen grant pynb the \"Run commands in Termux environment\" permission when asked.\n\nTip: for numpy / matplotlib, run \"pkg install python-numpy matplotlib\" and create the venv with --system-site-packages.</string>
-    <string name="kernel_termux_missing">Termux is not installed. Install Termux from F-Droid or GitHub to run cells.</string>
+    <string name="kernel_termux_missing">Termux is not installed. Install Termux from F-Droid or GitHub to run cells on this phone, or use an SSH server.</string>
     <string name="kernel_permission_denied">Without the \"Run commands in Termux environment\" permission pynb cannot start Python in Termux. You can grant it in Android settings → Apps → pynb → Permissions.</string>
     <string name="kernel_failed_title">Could not start Python</string>
-    <string name="kernel_not_connected">Connect to a Termux .venv first</string>
+    <string name="kernel_not_connected">Connect to a Python kernel first</string>
     <string name="kernel_restarted">Kernel restarted</string>
+
+    <!-- SSH kernel -->
+    <string name="kernel_backend_termux">Termux</string>
+    <string name="kernel_backend_ssh">SSH server</string>
+    <string name="ssh_saved_hint">Saved servers</string>
+    <string name="ssh_new_server">New server</string>
+    <string name="ssh_host_hint">Host</string>
+    <string name="ssh_port_hint">Port</string>
+    <string name="ssh_user_hint">User</string>
+    <string name="ssh_auth_key">Private key</string>
+    <string name="ssh_auth_password">Password</string>
+    <string name="ssh_choose_key">Choose key file</string>
+    <string name="ssh_key_none">No key selected (.pem, id_ed25519, id_rsa…)</string>
+    <string name="ssh_key_saved">Saved key will be used</string>
+    <string name="ssh_key_loaded">Key loaded: %1$s</string>
+    <string name="ssh_key_invalid">That file is not an SSH private key (expected a PEM or OpenSSH key, not a .pub or .ppk file).</string>
+    <string name="ssh_passphrase_hint">Key passphrase (if any)</string>
+    <string name="ssh_password_hint">Password</string>
+    <string name="ssh_saved_secret_hint">Saved. Leave empty to keep it</string>
+    <string name="ssh_venv_hint">.venv directory on the server</string>
+    <string name="ssh_forget">Forget this server</string>
+    <string name="ssh_forgotten">Server and its credentials removed</string>
+    <string name="ssh_missing_fields">Fill in host, user and .venv</string>
+    <string name="ssh_missing_key">Choose a private key file</string>
+    <string name="ssh_missing_password">Enter the password</string>
+    <string name="ssh_setup_help">Runs cells on a Linux or macOS server (AWS EC2, a VPS, a home server…) over SSH.\n\nOn the server, once:\n   python3 -m venv ~/myproject/.venv\n   ~/myproject/.venv/bin/pip install numpy pandas matplotlib\n\nEC2: the user is usually ec2-user (Amazon Linux), ubuntu (Ubuntu) or admin (Debian), and the key is your .pem file. The security group only needs inbound SSH (port 22); the kernel listens on the server\'s localhost and is reached through the SSH tunnel.\n\nCode, files, %pip and !shell commands run on the server. The notebook is still saved on this phone. Keys and passwords are stored encrypted with the Android Keystore.</string>
+    <string name="ssh_trust_title">Trust this server?</string>
+    <string name="ssh_trust_message">First connection to %1$s.\n\n%2$s key fingerprint:\n%3$s\n\nCompare it with the server\'s fingerprint (for example: ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub, or the EC2 console output) before trusting it.</string>
+    <string name="ssh_changed_title">Server key has changed!</string>
+    <string name="ssh_changed_message">The host key of %1$s is different from the one you trusted before. This happens when a server is rebuilt (e.g. a new EC2 instance on the same address), but it can also mean someone is intercepting the connection.\n\nPreviously trusted:\n%2$s\n\nNow presented (%3$s):\n%4$s\n\nOnly continue if you know why the key changed.</string>
+    <string name="ssh_trust">Trust and connect</string>
+    <string name="ssh_trust_new_key">Trust the new key</string>
     <string name="unsaved_title">Unsaved changes</string>
     <string name="unsaved_message">Save your edits and the outputs of the cells you ran before leaving?</string>
     <string name="save">Save</string>

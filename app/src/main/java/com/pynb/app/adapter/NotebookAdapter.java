@@ -27,6 +27,8 @@ import com.pynb.app.parser.AnsiParser;
 import com.pynb.app.parser.PythonSyntaxHighlighter;
 import com.pynb.app.util.FileUtils;
 import com.pynb.app.util.ImageCache;
+import com.pynb.app.util.MermaidSplitter;
+import com.pynb.app.view.MermaidView;
 
 import io.noties.markwon.Markwon;
 import com.pynb.app.util.SynchronousLatexPlugin;
@@ -242,6 +244,8 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     class MarkdownViewHolder extends RecyclerView.ViewHolder {
         private final ItemCellMarkdownBinding binding;
         private boolean isShowingRaw = false;
+        /** Font scale + source of the last Mermaid render, so plain re-binds don't rebuild WebViews. */
+        private String mermaidKey;
 
         MarkdownViewHolder(ItemCellMarkdownBinding binding) {
             super(binding.getRoot());
@@ -256,20 +260,19 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             binding.tvMarkdownRendered.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale);
             binding.tvMarkdownRaw.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * fontScale);
 
-            // Render Markdown with math support
-            String formattedSource = MathFormatter.formatMath(source);
-            markwon.setMarkdown(binding.tvMarkdownRendered, formattedSource);
+            // Render Markdown with math support (and Mermaid diagrams, if any)
+            renderMarkdown(source);
             binding.tvMarkdownRaw.setText(source);
 
             // Toggle source / rendered view
             binding.btnToggleSource.setOnClickListener(v -> {
                 isShowingRaw = !isShowingRaw;
                 if (isShowingRaw) {
-                    binding.tvMarkdownRendered.setVisibility(View.GONE);
+                    binding.layoutMarkdownRendered.setVisibility(View.GONE);
                     binding.tvMarkdownRaw.setVisibility(View.VISIBLE);
                     binding.btnToggleSource.setText(R.string.toggle_render);
                 } else {
-                    binding.tvMarkdownRendered.setVisibility(View.VISIBLE);
+                    binding.layoutMarkdownRendered.setVisibility(View.VISIBLE);
                     binding.tvMarkdownRaw.setVisibility(View.GONE);
                     binding.btnToggleSource.setText(R.string.toggle_raw);
                 }
@@ -284,6 +287,61 @@ public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             binding.btnCopyMarkdown.setOnClickListener(v -> {
                 FileUtils.copyToClipboard(v.getContext(), "Markdown Cell #" + (index + 1), source);
             });
+        }
+
+        private void renderMarkdown(String source) {
+            LinearLayout container = binding.layoutMarkdownRendered;
+
+            if (!MermaidSplitter.containsMermaid(source)) {
+                clearSegments(container);
+                mermaidKey = null;
+                binding.tvMarkdownRendered.setVisibility(View.VISIBLE);
+                markwon.setMarkdown(binding.tvMarkdownRendered, MathFormatter.formatMath(source));
+                return;
+            }
+
+            String key = fontScale + "\u0000" + source;
+            if (key.equals(mermaidKey)) return; // same diagrams already showing
+            mermaidKey = key;
+            clearSegments(container);
+            binding.tvMarkdownRendered.setVisibility(View.GONE);
+            Context context = container.getContext();
+            int gap = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6f,
+                    context.getResources().getDisplayMetrics()));
+            for (MermaidSplitter.Segment segment : MermaidSplitter.split(source)) {
+                View view;
+                if (segment.mermaid) {
+                    MermaidView diagram = new MermaidView(context, segment.text, isDarkTheme);
+                    diagram.setOnDiagramClickListener(bmp -> {
+                        if (imageClickListener != null) imageClickListener.onImageClick(bmp, "Mermaid diagram");
+                    });
+                    view = diagram;
+                } else {
+                    TextView tv = new TextView(context);
+                    tv.setTextColor(binding.tvMarkdownRendered.getTextColors());
+                    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale);
+                    tv.setLineSpacing(0f, 1.2f);
+                    tv.setLayoutParams(new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    markwon.setMarkdown(tv, MathFormatter.formatMath(segment.text));
+                    view = tv;
+                }
+                if (container.getChildCount() > 1) {
+                    ViewGroup.MarginLayoutParams lp = new LinearLayout.LayoutParams(view.getLayoutParams());
+                    lp.topMargin = gap;
+                    view.setLayoutParams(lp);
+                }
+                container.addView(view);
+            }
+        }
+
+        /** Removes the views added for a previous Mermaid render (child 0 is tvMarkdownRendered). */
+        private void clearSegments(LinearLayout container) {
+            for (int i = container.getChildCount() - 1; i >= 1; i--) {
+                View child = container.getChildAt(i);
+                container.removeViewAt(i);
+                if (child instanceof MermaidView) ((MermaidView) child).destroy();
+            }
         }
     }
 
