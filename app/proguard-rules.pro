@@ -2,7 +2,7 @@
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 
 # Keep data models serialized via Gson and Serializable
--keep class com.pynb.app.model.** { *; }
+-keep class com.rootminusone8004.pynb.model.** { *; }
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }

@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.pynb.app'
+    namespace 'com.rootminusone8004.pynb'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.pynb.app"
+        applicationId "com.rootminusone8004.pynb"
         minSdk 24
         targetSdk 34
         // Maintained by .github/scripts/update_version.py (git pre-commit hook) from CHANGELOG.md.
@@ -33,22 +33,23 @@ android {
         }
     }
 
+    def releaseKeystore = file('release.jks')
     signingConfigs {
-        release {
-            if (file('release.jks').exists()) {
-                storeFile file('release.jks')
+        if (releaseKeystore.exists()) {
+            release {
+                storeFile releaseKeystore
                 storePassword System.getenv("KEYSTORE_PASSWORD") ?: System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: 'pynbkeystore'
                 keyAlias System.getenv("KEY_ALIAS") ?: System.getenv("RELEASE_KEY_ALIAS") ?: 'pynb'
                 keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("RELEASE_KEY_PASSWORD") ?: 'pynbkeystore'
-            } else {
-                initWith(signingConfigs.debug)
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            if (releaseKeystore.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

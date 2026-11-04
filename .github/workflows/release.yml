@@ -80,6 +80,10 @@ jobs:
       - name: 📂 Prepare Release Artifacts
         run: |
           mkdir -p artifacts
+          if [ ! -f app/build/outputs/apk/release/app-release.apk ]; then
+            echo "::error::No signed APK: set the RELEASE_KEYSTORE_BASE64 secret (unsigned builds are only for F-Droid)."
+            exit 1
+          fi
           cp app/build/outputs/apk/release/app-release.apk artifacts/pynb-${{ steps.release_info.outputs.tag_name }}.apk
           cp app/build/outputs/apk/release/app-release.apk artifacts/pynb-latest.apk
 

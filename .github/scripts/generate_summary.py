@@ -88,7 +88,7 @@ def main():
             "| Property | Value |",
             "| :--- | :--- |",
             "| **Application Name** | **pynb** |",
-            "| **Package ID** | `com.pynb.app` |",
+            "| **Package ID** | `com.rootminusone8004.pynb` |",
             f"| **Version** | `{version}` |",
             f"| **Release Tag** | `{tag}` |",
             f"| **Build Status** | {build_status} |",

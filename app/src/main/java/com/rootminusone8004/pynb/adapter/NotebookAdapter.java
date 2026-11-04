@@ -1,0 +1,583 @@
+package com.rootminusone8004.pynb.adapter;
+
+import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Typeface;
+import android.util.TypedValue;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.rootminusone8004.pynb.R;
+import com.rootminusone8004.pynb.databinding.ItemCellCodeBinding;
+import com.rootminusone8004.pynb.databinding.ItemCellHeaderBinding;
+import com.rootminusone8004.pynb.databinding.ItemCellMarkdownBinding;
+import com.rootminusone8004.pynb.databinding.ItemCellRawBinding;
+import com.rootminusone8004.pynb.model.CellOutput;
+import com.rootminusone8004.pynb.model.Notebook;
+import com.rootminusone8004.pynb.model.NotebookCell;
+import com.rootminusone8004.pynb.parser.AnsiParser;
+import com.rootminusone8004.pynb.parser.PythonSyntaxHighlighter;
+import com.rootminusone8004.pynb.util.FileUtils;
+import com.rootminusone8004.pynb.util.ImageCache;
+import com.rootminusone8004.pynb.util.MermaidSplitter;
+import com.rootminusone8004.pynb.view.MermaidView;
+
+import io.noties.markwon.Markwon;
+import com.rootminusone8004.pynb.util.SynchronousLatexPlugin;
+import io.noties.markwon.ext.tables.TablePlugin;
+import io.noties.markwon.html.HtmlPlugin;
+import io.noties.markwon.image.ImagesPlugin;
+import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin;
+
+import android.graphics.Color;
+import androidx.core.content.ContextCompat;
+import com.rootminusone8004.pynb.util.MathFormatter;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class NotebookAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    public interface OnImageClickListener {
+        void onImageClick(Bitmap bitmap, String title);
+    }
+
+    /** Run / stop requests from a code cell's play button. */
+    public interface OnRunCellListener {
+        void onRunCell(int cellIndex);
+
+        void onStopCell(int cellIndex);
+    }
+
+    private OnRunCellListener runCellListener;
+
+    /** Edit requests from a markdown or code cell's pencil button. */
+    public interface OnEditCellListener {
+        void onEditCell(int cellIndex);
+    }
+
+    private OnEditCellListener editCellListener;
+
+    public void setOnEditCellListener(OnEditCellListener listener) {
+        this.editCellListener = listener;
+    }
+
+    public void setOnRunCellListener(OnRunCellListener listener) {
+        this.runCellListener = listener;
+    }
+
+    /** Re-binds one cell (cell index, not adapter position). */
+    public void notifyCellChanged(int cellIndex) {
+        notifyItemChanged(cellIndex + 1); // position 0 is the notebook header
+    }
+
+    private static final int TYPE_HEADER = 0;
+    private static final int TYPE_MARKDOWN = 1;
+    private static final int TYPE_CODE = 2;
+    private static final int TYPE_RAW = 3;
+
+    private Notebook notebook;
+    private final List<NotebookCell> cells = new ArrayList<>();
+    private final Markwon markwon;
+    private final boolean isDarkTheme;
+    private float fontScale = 1.0f;
+    private boolean showLineNumbers = true;
+    private final OnImageClickListener imageClickListener;
+    private RecyclerView attachedRecyclerView;
+
+    public NotebookAdapter(Context context, OnImageClickListener imageClickListener) {
+        this.imageClickListener = imageClickListener;
+
+        int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        this.isDarkTheme = (nightMode == Configuration.UI_MODE_NIGHT_YES);
+
+        int mathTextColor = isDarkTheme ? Color.WHITE : ContextCompat.getColor(context, R.color.text_primary_light);
+
+        this.markwon = Markwon.builder(context)
+                .usePlugin(ImagesPlugin.create())
+                .usePlugin(TablePlugin.create(context))
+                .usePlugin(HtmlPlugin.create())
+                .usePlugin(MarkwonInlineParserPlugin.create())
+                .usePlugin(SynchronousLatexPlugin.create(
+                        context,
+                        () -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale, context.getResources().getDisplayMetrics()),
+                        () -> TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16f * fontScale, context.getResources().getDisplayMetrics()),
+                        () -> isDarkTheme ? Color.WHITE : ContextCompat.getColor(context, R.color.text_primary_light),
+                        () -> markdownContentWidthPx(context)
+                ))
+                .build();
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onAttachedToRecyclerView(recyclerView);
+        attachedRecyclerView = recyclerView;
+    }
+
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        if (attachedRecyclerView == recyclerView) {
+            attachedRecyclerView = null;
+        }
+    }
+
+    /**
+     * Width available to rendered Markdown inside a cell card: list width minus the card's
+     * horizontal margins (2 x 12dp), stroke (2 x 1dp) and content padding (2 x 14dp).
+     * Used to scale down formulas that would otherwise overflow and be clipped.
+     */
+    private int markdownContentWidthPx(Context context) {
+        android.util.DisplayMetrics dm = context.getResources().getDisplayMetrics();
+        int listWidth = 0;
+        if (attachedRecyclerView != null) {
+            listWidth = attachedRecyclerView.getWidth()
+                    - attachedRecyclerView.getPaddingLeft() - attachedRecyclerView.getPaddingRight();
+        }
+        if (listWidth <= 0) {
+            listWidth = dm.widthPixels;
+        }
+        int chrome = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 54f, dm));
+        return Math.max(1, listWidth - chrome);
+    }
+
+    public void setNotebook(Notebook notebook) {
+        this.notebook = notebook;
+        this.cells.clear();
+        if (notebook != null && notebook.getCells() != null) {
+            this.cells.addAll(notebook.getCells());
+        }
+        notifyDataSetChanged();
+    }
+
+    public void setFontScale(float scale) {
+        this.fontScale = Math.max(0.75f, Math.min(1.8f, scale));
+        notifyDataSetChanged();
+    }
+
+    public float getFontScale() {
+        return fontScale;
+    }
+
+    public void setShowLineNumbers(boolean show) {
+        this.showLineNumbers = show;
+        notifyDataSetChanged();
+    }
+
+    public boolean isShowLineNumbers() {
+        return showLineNumbers;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        if (position == 0) {
+            return TYPE_HEADER;
+        }
+        NotebookCell cell = cells.get(position - 1);
+        if (cell.isMarkdown()) return TYPE_MARKDOWN;
+        if (cell.isCode()) return TYPE_CODE;
+        return TYPE_RAW;
+    }
+
+    @NonNull
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        switch (viewType) {
+            case TYPE_HEADER:
+                return new HeaderViewHolder(ItemCellHeaderBinding.inflate(inflater, parent, false));
+            case TYPE_MARKDOWN:
+                return new MarkdownViewHolder(ItemCellMarkdownBinding.inflate(inflater, parent, false));
+            case TYPE_CODE:
+                return new CodeViewHolder(ItemCellCodeBinding.inflate(inflater, parent, false));
+            case TYPE_RAW:
+            default:
+                return new RawViewHolder(ItemCellRawBinding.inflate(inflater, parent, false));
+        }
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof HeaderViewHolder) {
+            ((HeaderViewHolder) holder).bind(notebook);
+        } else if (holder instanceof MarkdownViewHolder) {
+            ((MarkdownViewHolder) holder).bind(cells.get(position - 1), position - 1);
+        } else if (holder instanceof CodeViewHolder) {
+            ((CodeViewHolder) holder).bind(cells.get(position - 1), position - 1);
+        } else if (holder instanceof RawViewHolder) {
+            ((RawViewHolder) holder).bind(cells.get(position - 1), position - 1);
+        }
+    }
+
+    @Override
+    public int getItemCount() {
+        return notebook == null ? 0 : cells.size() + 1;
+    }
+
+    // ================= HEADER VIEWHOLDER =================
+    class HeaderViewHolder extends RecyclerView.ViewHolder {
+        private final ItemCellHeaderBinding binding;
+
+        HeaderViewHolder(ItemCellHeaderBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        void bind(Notebook nb) {
+            if (nb == null) return;
+            binding.tvHeaderTitle.setText(nb.getTitle());
+            binding.chipKernel.setText(nb.getMetadata().getKernelDisplayName());
+            binding.chipTotalCells.setText(nb.getTotalCells() + " cells");
+            binding.chipStats.setText(nb.getCodeCellCount() + " code • " + nb.getMarkdownCellCount() + " markdown");
+        }
+    }
+
+    // ================= MARKDOWN VIEWHOLDER =================
+    class MarkdownViewHolder extends RecyclerView.ViewHolder {
+        private final ItemCellMarkdownBinding binding;
+        private boolean isShowingRaw = false;
+        /** Font scale + source of the last Mermaid render, so plain re-binds don't rebuild WebViews. */
+        private String mermaidKey;
+
+        MarkdownViewHolder(ItemCellMarkdownBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        void bind(NotebookCell cell, int index) {
+            binding.tvMdCellNumber.setText("#" + (index + 1));
+            String source = cell.getSource();
+
+            // Font size adjustment
+            binding.tvMarkdownRendered.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale);
+            binding.tvMarkdownRaw.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * fontScale);
+
+            // Render Markdown with math support (and Mermaid diagrams, if any)
+            renderMarkdown(source);
+            binding.tvMarkdownRaw.setText(source);
+
+            // Toggle source / rendered view
+            binding.btnToggleSource.setOnClickListener(v -> {
+                isShowingRaw = !isShowingRaw;
+                if (isShowingRaw) {
+                    binding.layoutMarkdownRendered.setVisibility(View.GONE);
+                    binding.tvMarkdownRaw.setVisibility(View.VISIBLE);
+                    binding.btnToggleSource.setText(R.string.toggle_render);
+                } else {
+                    binding.layoutMarkdownRendered.setVisibility(View.VISIBLE);
+                    binding.tvMarkdownRaw.setVisibility(View.GONE);
+                    binding.btnToggleSource.setText(R.string.toggle_raw);
+                }
+            });
+
+            // Edit
+            binding.btnEditMarkdown.setOnClickListener(v -> {
+                if (editCellListener != null) editCellListener.onEditCell(index);
+            });
+
+            // Copy markdown source
+            binding.btnCopyMarkdown.setOnClickListener(v -> {
+                FileUtils.copyToClipboard(v.getContext(), "Markdown Cell #" + (index + 1), source);
+            });
+        }
+
+        private void renderMarkdown(String source) {
+            LinearLayout container = binding.layoutMarkdownRendered;
+
+            if (!MermaidSplitter.containsMermaid(source)) {
+                clearSegments(container);
+                mermaidKey = null;
+                binding.tvMarkdownRendered.setVisibility(View.VISIBLE);
+                markwon.setMarkdown(binding.tvMarkdownRendered, MathFormatter.formatMath(source));
+                return;
+            }
+
+            String key = fontScale + "\u0000" + source;
+            if (key.equals(mermaidKey)) return; // same diagrams already showing
+            mermaidKey = key;
+            clearSegments(container);
+            binding.tvMarkdownRendered.setVisibility(View.GONE);
+            Context context = container.getContext();
+            int gap = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6f,
+                    context.getResources().getDisplayMetrics()));
+            for (MermaidSplitter.Segment segment : MermaidSplitter.split(source)) {
+                View view;
+                if (segment.mermaid) {
+                    MermaidView diagram = new MermaidView(context, segment.text, isDarkTheme);
+                    diagram.setOnDiagramClickListener(bmp -> {
+                        if (imageClickListener != null) imageClickListener.onImageClick(bmp, "Mermaid diagram");
+                    });
+                    view = diagram;
+                } else {
+                    TextView tv = new TextView(context);
+                    tv.setTextColor(binding.tvMarkdownRendered.getTextColors());
+                    tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * fontScale);
+                    tv.setLineSpacing(0f, 1.2f);
+                    tv.setLayoutParams(new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                    markwon.setMarkdown(tv, MathFormatter.formatMath(segment.text));
+                    view = tv;
+                }
+                if (container.getChildCount() > 1) {
+                    ViewGroup.MarginLayoutParams lp = new LinearLayout.LayoutParams(view.getLayoutParams());
+                    lp.topMargin = gap;
+                    view.setLayoutParams(lp);
+                }
+                container.addView(view);
+            }
+        }
+
+        /** Removes the views added for a previous Mermaid render (child 0 is tvMarkdownRendered). */
+        private void clearSegments(LinearLayout container) {
+            for (int i = container.getChildCount() - 1; i >= 1; i--) {
+                View child = container.getChildAt(i);
+                container.removeViewAt(i);
+                if (child instanceof MermaidView) ((MermaidView) child).destroy();
+            }
+        }
+    }
+
+    // ================= CODE VIEWHOLDER =================
+    class CodeViewHolder extends RecyclerView.ViewHolder {
+        private final ItemCellCodeBinding binding;
+
+        CodeViewHolder(ItemCellCodeBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        void bind(NotebookCell cell, int index) {
+            Context context = binding.getRoot().getContext();
+            binding.tvCodeCellNumber.setText("#" + (index + 1));
+            binding.tvInPrompt.setText("In " + cell.getExecutionPrompt() + ":");
+
+            String source = cell.getSource();
+
+            // Font size scaling
+            binding.tvCodeSource.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f * fontScale);
+            binding.tvLineNumbers.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f * fontScale);
+
+            // Syntax highlighting
+            CharSequence highlighted = PythonSyntaxHighlighter.highlight(source, isDarkTheme);
+            binding.tvCodeSource.setText(highlighted);
+
+            // Line numbers calculation
+            if (showLineNumbers && source != null && !source.isEmpty()) {
+                binding.tvLineNumbers.setVisibility(View.VISIBLE);
+                binding.viewLineDivider.setVisibility(View.VISIBLE);
+                int lineCount = countLines(source);
+                StringBuilder lines = new StringBuilder();
+                for (int i = 1; i <= lineCount; i++) {
+                    lines.append(i).append("\n");
+                }
+                binding.tvLineNumbers.setText(lines.toString().trim());
+            } else {
+                binding.tvLineNumbers.setVisibility(View.GONE);
+                binding.viewLineDivider.setVisibility(View.GONE);
+            }
+
+            // Collapse / Expand toggle
+            binding.btnCollapseCode.setOnClickListener(v -> {
+                boolean collapsed = !cell.isCollapsed();
+                cell.setCollapsed(collapsed);
+                updateCollapseState(cell);
+            });
+            updateCollapseState(cell);
+
+            // Edit
+            binding.btnEditCode.setOnClickListener(v -> {
+                if (editCellListener != null) editCellListener.onEditCell(index);
+            });
+
+            // Run / stop
+            boolean active = cell.getRunState() != NotebookCell.RunState.IDLE;
+            binding.btnRunCell.setImageResource(active ? R.drawable.ic_stop : R.drawable.ic_play);
+            binding.btnRunCell.setContentDescription(context.getString(active ? R.string.stop_cell : R.string.run_cell));
+            binding.btnRunCell.setOnClickListener(v -> {
+                if (runCellListener == null) return;
+                if (cell.getRunState() != NotebookCell.RunState.IDLE) {
+                    runCellListener.onStopCell(index);
+                } else {
+                    runCellListener.onRunCell(index);
+                }
+            });
+
+            // Copy code
+            binding.btnCopyCode.setOnClickListener(v -> {
+                FileUtils.copyToClipboard(context, "Code Cell #" + (index + 1), source);
+            });
+
+            // Render Outputs
+            renderOutputs(cell, index);
+        }
+
+        private void updateCollapseState(NotebookCell cell) {
+            if (cell.isCollapsed()) {
+                binding.scrollCodeContainer.setVisibility(View.GONE);
+                binding.layoutOutputsContainer.setVisibility(View.GONE);
+                binding.btnCollapseCode.setImageResource(R.drawable.ic_expand);
+            } else {
+                binding.scrollCodeContainer.setVisibility(View.VISIBLE);
+                if (cell.hasOutputs()) {
+                    binding.layoutOutputsContainer.setVisibility(View.VISIBLE);
+                }
+                binding.btnCollapseCode.setImageResource(R.drawable.ic_collapse);
+            }
+        }
+
+        private void renderOutputs(NotebookCell cell, int cellIndex) {
+            binding.layoutOutputsList.removeAllViews();
+
+            if (!cell.hasOutputs()) {
+                binding.layoutOutputsContainer.setVisibility(View.GONE);
+                return;
+            }
+
+            if (!cell.isCollapsed()) {
+                binding.layoutOutputsContainer.setVisibility(View.VISIBLE);
+            }
+
+            binding.tvOutPrompt.setText("Out " + cell.getExecutionPrompt() + ":");
+            Context context = binding.getRoot().getContext();
+            LayoutInflater inflater = LayoutInflater.from(context);
+
+            for (int i = 0; i < cell.getOutputs().size(); i++) {
+                CellOutput output = cell.getOutputs().get(i);
+                // identity hash: re-running a cell creates new output objects, so stale figures are never reused
+                String cacheKey = "cell_" + cellIndex + "_out_" + i + "_" + System.identityHashCode(output);
+
+                // 1. Image Output (PNG / JPEG)
+                if (output.hasImage()) {
+                    ImageView iv = new ImageView(context);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    lp.setMargins(0, 8, 0, 8);
+                    iv.setLayoutParams(lp);
+                    iv.setAdjustViewBounds(true);
+                    iv.setMaxHeight((int) (400 * context.getResources().getDisplayMetrics().density));
+                    iv.setBackgroundResource(R.drawable.bg_output_box);
+                    iv.setPadding(8, 8, 8, 8);
+
+                    Bitmap cachedBitmap = ImageCache.getInstance().getBitmap(cacheKey);
+                    if (cachedBitmap == null) {
+                        cachedBitmap = ImageCache.decodeBase64(output.getImageBase64());
+                        if (cachedBitmap != null) {
+                            ImageCache.getInstance().putBitmap(cacheKey, cachedBitmap);
+                        }
+                    }
+
+                    if (cachedBitmap != null) {
+                        final Bitmap bmp = cachedBitmap;
+                        iv.setImageBitmap(bmp);
+                        iv.setOnClickListener(v -> {
+                            if (imageClickListener != null) {
+                                imageClickListener.onImageClick(bmp, "Output Figure (Cell #" + (cellIndex + 1) + ")");
+                            }
+                        });
+                        binding.layoutOutputsList.addView(iv);
+                    }
+                }
+
+                // 2. Error Output (Traceback with ANSI escape codes)
+                else if (output.isError()) {
+                    LinearLayout errorLayout = new LinearLayout(context);
+                    errorLayout.setOrientation(LinearLayout.VERTICAL);
+                    errorLayout.setBackgroundResource(R.drawable.bg_error_box);
+                    errorLayout.setPadding(16, 16, 16, 16);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    lp.setMargins(0, 8, 0, 8);
+                    errorLayout.setLayoutParams(lp);
+
+                    // Ename + Evalue
+                    TextView tvErrTitle = new TextView(context);
+                    tvErrTitle.setText(output.getEname() + ": " + output.getEvalue());
+                    tvErrTitle.setTextColor(context.getColor(R.color.error_text_light));
+                    tvErrTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                    tvErrTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * fontScale);
+                    errorLayout.addView(tvErrTitle);
+
+                    // Traceback
+                    if (output.getTraceback() != null && !output.getTraceback().isEmpty()) {
+                        StringBuilder tbSb = new StringBuilder();
+                        for (String tbLine : output.getTraceback()) {
+                            tbSb.append(tbLine).append("\n");
+                        }
+                        CharSequence coloredTb = AnsiParser.parse(tbSb.toString(), isDarkTheme);
+
+                        TextView tvTb = new TextView(context);
+                        tvTb.setText(coloredTb);
+                        tvTb.setTypeface(Typeface.MONOSPACE);
+                        tvTb.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f * fontScale);
+                        tvTb.setTextIsSelectable(true);
+                        tvTb.setPadding(0, 8, 0, 0);
+                        errorLayout.addView(tvTb);
+                    }
+
+                    binding.layoutOutputsList.addView(errorLayout);
+                }
+
+                // 3. Stream (stdout / stderr) or Plain Text
+                else if (output.hasPlainText()) {
+                    String plain = output.getPlainText();
+                    if (plain != null && !plain.isEmpty()) {
+                        TextView tvText = new TextView(context);
+                        tvText.setBackgroundResource(R.drawable.bg_output_box);
+                        tvText.setTypeface(Typeface.MONOSPACE);
+                        tvText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * fontScale);
+                        tvText.setTextColor(context.getColor(R.color.text_primary_light));
+                        tvText.setTextIsSelectable(true);
+                        tvText.setPadding(16, 12, 16, 12);
+
+                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        lp.setMargins(0, 4, 0, 4);
+                        tvText.setLayoutParams(lp);
+
+                        CharSequence ansiParsed = AnsiParser.parse(plain, isDarkTheme);
+                        tvText.setText(ansiParsed);
+                        binding.layoutOutputsList.addView(tvText);
+                    }
+                }
+            }
+        }
+
+        private int countLines(String str) {
+            if (str == null || str.isEmpty()) return 0;
+            int lines = 1;
+            for (int i = 0; i < str.length(); i++) {
+                if (str.charAt(i) == '\n') lines++;
+            }
+            return lines;
+        }
+    }
+
+    // ================= RAW VIEWHOLDER =================
+    class RawViewHolder extends RecyclerView.ViewHolder {
+        private final ItemCellRawBinding binding;
+
+        RawViewHolder(ItemCellRawBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+        }
+
+        void bind(NotebookCell cell, int index) {
+            binding.tvRawCellNumber.setText("#" + (index + 1));
+            String source = cell.getSource();
+            binding.tvRawSource.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * fontScale);
+            binding.tvRawSource.setText(source);
+
+            binding.btnCopyRaw.setOnClickListener(v -> {
+                FileUtils.copyToClipboard(v.getContext(), "Raw Cell #" + (index + 1), source);
+            });
+        }
+    }
+}

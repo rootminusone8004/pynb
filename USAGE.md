@@ -1,12 +1,18 @@
-# App Usage Guide
+# 📖 pynb User Guide & Usage Techniques
 
-## How to Start the App
-  1. Locate the **pynb** icon on your Android home screen or app drawer.
-  2. Tap the icon to launch the app.
+Welcome to **pynb**! This guide covers how to open and read Jupyter notebooks, edit cells, run Python on your phone (Termux) or on your own server (SSH), use code suggestions, and save your work back to `.ipynb`.
 
 ---
 
-## Opening Notebooks
+## 🚀 How to Start the App
+
+1. Locate the **pynb** icon on your Android home screen or app drawer.
+2. Tap the icon to launch the app.
+3. The home screen shows your recent notebooks and folders, the built-in samples, and buttons to open a folder or a single notebook.
+
+---
+
+## 📂 Opening Notebooks
 
 There are three convenient ways to open and read Jupyter notebooks in **pynb**:
 
@@ -32,7 +38,7 @@ There are three convenient ways to open and read Jupyter notebooks in **pynb**:
 
 ---
 
-## Inside the Notebook Viewer
+## 📓 Inside the Notebook Viewer
 
 - **Smooth Scrolling**: Scroll naturally through hundreds of cells at 60/120 FPS.
 - **Copy Code / Markdown**: Tap the copy icon on any code or markdown cell header to copy its contents to the clipboard.
@@ -44,7 +50,27 @@ There are three convenient ways to open and read Jupyter notebooks in **pynb**:
 - **Font Size Scaling**: Use `A+` or `A-` from the top menu to adjust text sizing for comfortable reading.
 - **Line Numbers**: Toggle line numbers on/off from the options menu.
 
-## Editing Cells
+---
+
+## 🧮 Math & Diagrams in Markdown
+
+- **LaTeX math**: inline `$E = mc^2$`, and display equations with `$$...$$`, `\[...\]` or `\begin{align}...\end{align}`. Wide equations shrink to fit the screen.
+- **Mermaid diagrams**: a fenced block marked `mermaid` is drawn as a diagram (flowchart, sequence, class, state, Gantt, pie…):
+
+  ````markdown
+  ```mermaid
+  graph TD
+    A[Load data] --> B{Clean?}
+    B -- yes --> C[Train model]
+    B -- no --> A
+  ```
+  ````
+
+  Diagrams are drawn offline with a bundled copy of Mermaid and follow the light / dark theme. A diagram with a syntax error shows the error message instead. Tap a diagram to open it in the zoomable viewer.
+
+---
+
+## ✏️ Editing Cells
 
 Tap ✏️ on a markdown or code cell to open the full-screen editor.
 
@@ -54,11 +80,13 @@ Tap ✏️ on a markdown or code cell to open the full-screen editor.
 
 Edited cells keep their outputs until they are run again. Use **Save** to write the changes into the `.ipynb` file.
 
-### Code suggestions
+### 💡 Code Suggestions & Parameter Hints
 
 When a kernel is connected (Termux or SSH server), typing in a code cell's editor shows suggestions in a strip above the key bar. Tap one to insert it. They come from the running Python session: variables defined by earlier cells and their attributes (`df.` → `head`, `describe`…), functions, keywords, builtins, and installed modules after `import` / `from … import`. Inside a call, a bar shows the function's parameters with the one you are typing highlighted. For example, typing `range(1, ` shows `range(start, stop[, step])` with `stop` highlighted. The bar goes away when you type `)`. Suggestions and hints only appear while connected. A kernel started by an older pynb version has no suggestions until you **Disconnect** and connect again.
 
-## Running Cells with Termux
+---
+
+## ▶️ Running Cells with Termux
 
 pynb can run code cells with the Python interpreter of a virtual environment (`.venv`) in [Termux](https://termux.dev). Variables persist between cells, like in Jupyter.
 
@@ -84,7 +112,9 @@ pynb can run code cells with the Python interpreter of a virtual environment (`.
 
 pynb starts `<venv>/bin/python` in Termux's background and talks to it over `127.0.0.1` with a random per-session token. The toolbar shows the Python version and whether the kernel is idle or busy.
 
-## Running Cells on an SSH Server (AWS EC2, VPS…)
+---
+
+## 🌐 Running Cells on an SSH Server (AWS EC2, VPS…)
 
 Cells can also run on a Linux or macOS server you can reach over SSH, with the Python of a `.venv` on that server.
 
@@ -113,10 +143,22 @@ Good to know:
 - The server kernel keeps running if the connection drops or the app is closed (it stops by itself after 4 hours idle). pynb reconnects to it automatically, so your variables are kept. If the connection drops *while* a cell runs, that cell's output is lost.
 - The server needs `sh` and must allow SSH port forwarding (`AllowTcpForwarding`, on by default). Windows servers, PuTTY `.ppk` keys (convert them with `puttygen key.ppk -O private-openssh -o key.pem`) and two-factor prompts are not supported.
 
-### Running and saving
+---
+
+## 💾 Running and Saving
 
 - **▶ / ■** on a cell runs it or stops it. **Run All** runs every code cell and stops at the first error.
 - **Interrupt**, **Restart** (fresh variables) and **Disconnect** are in the menu.
 - **Save** writes your edits and outputs into the `.ipynb` file. Only changed cells are rewritten, and the file keeps Jupyter's own formatting. Notebooks that cannot be overwritten (samples, read-only files) are saved with **Save As…**.
 
-Supported: printed output, the value of the last line, `display()`, rich `_repr_*_` objects, matplotlib figures, tracebacks, `!shell commands`, `%pip`, `%cd`, `%pwd`, `%time`, `%%bash` and `%%writefile`. Outputs appear when a cell finishes (they are not streamed live), and `input()` is not supported.
+**Supported:** printed output, the value of the last line, `display()`, rich `_repr_*_` objects, matplotlib figures, tracebacks, `!shell commands`, `%pip`, `%cd`, `%pwd`, `%time`, `%%bash` and `%%writefile`. Outputs appear when a cell finishes (they are not streamed live), and `input()` is not supported.
+
+---
+
+## 🛟 Troubleshooting
+
+- **"Could not reach Termux" / the kernel does not start**: open the Termux app once, check that `allow-external-apps=true` is in `~/.termux/termux.properties` (then run `termux-reload-settings`), and that the `.venv` path is right.
+- **SSH: "Could not reach host"**: check the address and your network, and that the firewall (for AWS: the security group) allows inbound SSH on the port you entered.
+- **SSH: "Authentication failed"**: check the user name (EC2: `ec2-user`, `ubuntu`, `admin`…) and that your key is in the server's `~/.ssh/authorized_keys`.
+- **SSH: "No Python at …/bin/python"**: the `.venv` path does not exist on the server; create it with `python3 -m venv <path>`.
+- **No suggestions**: suggestions need a connected kernel. A kernel started by an older pynb version has no suggestions until you **Disconnect** and connect again.

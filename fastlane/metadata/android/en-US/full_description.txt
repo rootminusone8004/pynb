@@ -1,11 +1,16 @@
-pynb is a high-performance, native Java Android application built specifically to read, inspect, and navigate Jupyter Notebook (.ipynb) files smoothly without lag.
+pynb is a fast, native Jupyter Notebook (.ipynb) reader, editor and runner for Android.
+
+Notebooks are rendered with native Android views instead of a heavy WebView, so even long notebooks scroll smoothly. Read, edit and run your notebooks on the go, with Python running in Termux on your phone or on your own server over SSH.
 
 Key Features:
-- Smooth 60/120 FPS Rendering: Eliminates sluggish WebViews by using native Android RecyclerView with optimized ViewHolder recycling.
-- Native Markdown Typography: Powered by Markwon for instant rendering of headers, lists, code blocks, and tables.
-- Python Syntax Highlighting: Regex-based token syntax highlighting for keywords, numbers, strings, decorators, and comments.
-- Rich Output Display: Supports stream stdout/stderr, Matplotlib/Seaborn plot figures, and Python error tracebacks formatted with full ANSI color sequence fidelity.
-- Fullscreen Plot Viewer: Pinch-to-zoom, pan, and double-tap zoom for chart inspection and sharing.
-- Folder Workspace Explorer: Browse and traverse directory trees via Storage Access Framework with interactive breadcrumbs and live search.
-- Table of Contents: Automatically extracts Markdown headings into an interactive outline bottom sheet for instant section jumping.
-- 100% Offline & Private: Zero internet permission, no ads, no telemetry.
+- Native Notebook Reader: Smooth scrolling, Python syntax highlighting with line numbers, collapsible code cells, ANSI-colored outputs, tracebacks and Matplotlib figures with a pinch-to-zoom viewer.
+- Markdown, Math & Diagrams: Headings, lists, tables and code blocks, LaTeX formulas, and Mermaid diagrams (flowcharts, sequence, Gantt, pie...) rendered offline.
+- Cell Editor: Full-screen editor with Python highlighting, auto-indent and a key bar for symbols that are awkward on phone keyboards.
+- Run Python in Termux: Connect to a .venv in Termux and run cells with variables kept between them, like in Jupyter. Run All, Interrupt and Restart are included.
+- Run Python on Your Server: Connect to a .venv on AWS EC2, a VPS or any Linux/macOS server over SSH with a private key or password. The kernel is reached through the SSH tunnel and survives connection drops.
+- Code Suggestions & Parameter Hints: Completions and function parameters come from your live Python session.
+- Save Back to .ipynb: Edits and new outputs are written into the notebook in Jupyter's own format.
+- Folder Workspace: Browse folders with breadcrumbs, search and recent files; open notebooks from any app.
+- Private: No ads, no analytics, no tracking. The internet permission is only used for SSH connections to servers you add. SSH keys and passwords are encrypted with the Android Keystore.
+
+Running cells needs Termux (with a Python virtual environment) or an SSH server with Python 3. Reading and editing notebooks works without either.
