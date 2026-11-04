@@ -1,0 +1,3 @@
+Changed
+  - App name: It got a new app string!
+  - F-droid: Made it compatible for F-droid integration

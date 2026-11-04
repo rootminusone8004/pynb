@@ -5,6 +5,11 @@ All notable changes to the **pynb** project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-11-05
+### Changed
+- **App name**: It got a new app string!
+- **F-droid**: Made it compatible for F-droid integration
+
 ## [1.4.0] - 2026-11-04
 ### Added
 - **Code suggestions**: While editing a code cell, a suggestion strip above the key bar offers completions from the connected kernel (Termux or SSH server): your variables and their attributes, functions, keywords, builtins, and importable modules for `import` / `from … import`. They come from the live session, so they know what earlier cells defined, and they work while a cell is running. Nothing is added to the app; without a connected kernel no suggestions are shown.
