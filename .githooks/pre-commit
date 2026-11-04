@@ -1,9 +1,10 @@
 #!/bin/sh
-# Keeps versionCode/versionName and the Fastlane changelog in sync with CHANGELOG.md
-# and adds them to the commit being made, so CI never has to commit anything.
+# Keeps versionCode/versionName, the Fastlane changelog and the README release badge in
+# sync with CHANGELOG.md and adds them to the commit being made, so CI never has to commit.
+# Only the badge line of README.md is staged; other unstaged README edits stay unstaged.
 #
 # Enable once per clone:  git config core.hooksPath .githooks
 set -e
 cd "$(git rev-parse --show-toplevel)"
-python3 .github/scripts/update_version.py >/dev/null
+python3 .github/scripts/update_version.py --stage-readme >/dev/null
 git add app/build.gradle fastlane/metadata/android/en-US/changelogs/

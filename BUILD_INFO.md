@@ -138,7 +138,8 @@ The version comes from `CHANGELOG.md`. A git pre-commit hook (`.githooks/pre-com
 
 1. Takes the newest `## [X.Y.Z]` heading of `CHANGELOG.md` (an `## [Unreleased]` section is ignored).
 2. Writes `versionCode` / `versionName` into `app/build.gradle`.
-3. Writes that release's notes to `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
+3. Sets the **release** badge in `README.md` to the same version (only that line is staged, so other README edits you haven't staged stay out of the commit).
+4. Writes that release's notes to `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
 
 CI only checks that these files are up to date (`update_version.py --check`), runs the unit tests, builds the signed release APK and publishes the GitHub release.
 

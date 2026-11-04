@@ -12,7 +12,8 @@ version bump and Fastlane changelog land in your own commit.
      (an ``## [Unreleased]`` section is ignored).
 2. Computes ``versionCode = major * 10000 + minor * 100 + patch``
    (1.0.1 -> 10001, 1.2.0 -> 10200, 2.0.0 -> 20000).
-3. Writes ``versionCode`` / ``versionName`` into app/build.gradle.
+3. Writes ``versionCode`` / ``versionName`` into app/build.gradle, and sets the
+   "release" badge in README.md to the same version.
 4. Writes that version's CHANGELOG.md section, as plain text, to
    ``fastlane/metadata/android/en-US/changelogs/<versionCode>.txt``
    (the file F-Droid and Google Play read for "What's new").
@@ -29,6 +30,7 @@ from pathlib import Path
 FASTLANE_CHANGELOG_DIR = Path("fastlane/metadata/android/en-US/changelogs")
 BUILD_GRADLE = Path("app/build.gradle")
 CHANGELOG = Path("CHANGELOG.md")
+README = Path("README.md")
 # F-Droid and Google Play both cap "What's new" text at 500 characters.
 MAX_CHANGELOG_CHARS = 500
 
@@ -137,6 +139,48 @@ def update_build_gradle(path, version, version_code):
     return False
 
 
+# [![release: 1.3.0](https://img.shields.io/badge/release-1.3.0-blue.svg)](.../releases)
+README_BADGE = re.compile(
+    r"\[!\[release: [^\]]*\]\(https://img\.shields\.io/badge/release-[^)]*?-blue\.svg\)\]")
+
+
+def readme_with_version(text, version):
+    """README text with the release badge set to `version` (unchanged if there is no badge)."""
+    badge = f"[![release: {version}](https://img.shields.io/badge/release-{version}-blue.svg)]"
+    return README_BADGE.sub(lambda _: badge, text, count=1)
+
+
+def update_readme(path, version):
+    if not path.exists():
+        return False
+    text = path.read_text(encoding="utf-8")
+    if not README_BADGE.search(text):
+        print(f"::warning::No release badge found in {path}")
+        return False
+    return write_if_changed(path, readme_with_version(text, version))
+
+
+def stage_readme_badge(root, version):
+    """Pre-commit hook: updates the badge in the *staged* README.md only, so other unstaged
+    README edits are not swept into the commit."""
+    import subprocess
+
+    def git(*args, data=None):
+        return subprocess.run(["git", *args], cwd=root, input=data, capture_output=True, check=True).stdout
+
+    try:
+        staged = git("show", f":{README}").decode("utf-8")
+    except subprocess.CalledProcessError:
+        return  # README.md is not tracked
+    updated = readme_with_version(staged, version)
+    if updated == staged:
+        return
+    blob = git("hash-object", "-w", "--stdin", data=updated.encode("utf-8")).decode().strip()
+    mode = git("ls-files", "-s", "--", str(README)).decode().split()[0]
+    git("update-index", "--cacheinfo", f"{mode},{blob},{README}")
+    print(f"README badge staged: release {version}")
+
+
 def write_if_changed(path, content):
     if path.exists() and path.read_text(encoding="utf-8") == content:
         return False
@@ -152,6 +196,9 @@ def main():
     version_code = compute_version_code(version)
 
     changed = update_build_gradle(root / BUILD_GRADLE, version, version_code)
+    changed |= update_readme(root / README, version)
+    if "--stage-readme" in sys.argv[1:] and not CHECK_ONLY:
+        stage_readme_badge(root, version)
 
     notes = to_plain_text(changelog_section(changelog_text, version))
     if notes:
