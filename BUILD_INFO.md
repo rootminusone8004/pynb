@@ -7,7 +7,7 @@
 - **Target Platform:** Android 7.0+ (API 24 to 34)
 
 ## Build Environment
-- **Java Development Kit (JDK):** OpenJDK 17
+- **Java Development Kit (JDK):** OpenJDK 21 (the code targets Java 17; releases must be built with JDK 21, see below)
 - **Gradle Version:** 8.12
 - **Android Gradle Plugin (AGP):** 8.7.3
 - **Android Studio / IntelliJ IDEA:** 2024.1+
@@ -58,10 +58,10 @@ All dependencies come from Maven Central or Google's Maven repository.
    - *Ubuntu / Debian*: `sudo apt install git`
    - *macOS*: `brew install git`
 
-2. **Java 17 (JDK)**: Ensure OpenJDK 17 is installed and set as `JAVA_HOME`.
-   - *Arch Linux*: `sudo pacman -S jdk17-openjdk`
-   - *Ubuntu / Debian*: `sudo apt install openjdk-17-jdk`
-   - *macOS*: `brew install openjdk@17`
+2. **Java 21 (JDK)**: Ensure OpenJDK 21 is installed and set as `JAVA_HOME`.
+   - *Arch Linux*: `sudo pacman -S jdk21-openjdk`
+   - *Ubuntu / Debian*: `sudo apt install openjdk-21-jdk`
+   - *macOS*: `brew install openjdk@21`
 
 3. **Android SDK**: Platform API 34 and Build-Tools 34.0.0 (installed by Android Studio, or with `sdkmanager "platforms;android-34" "build-tools;34.0.0"`). Point to it with `ANDROID_HOME` or a `local.properties` file (`sdk.dir=/path/to/sdk`).
 
@@ -124,6 +124,7 @@ pynb is built to meet F-Droid's inclusion policy:
 
 - **100% free software**: the app is MIT licensed, and every dependency is open source (see the license table in [README.md](README.md)). No Google Play Services, Firebase, analytics or ads.
 - **Builds from source** with plain `./gradlew assembleRelease` (Gradle subdir `app`), from Maven Central and Google's Maven repository only.
+- **Reproducible builds**: F-Droid rebuilds each tagged release and ships the developer-signed APK only if its build is byte-for-byte identical. This requires the **same JDK major version** as F-Droid's build server (currently **OpenJDK 21**). A JDK 17 build compiles to different bytecode, R8 merges classes differently, and `classes.dex` / `baseline.profm` no longer match. CI therefore builds releases with JDK 21.
 - **Unsigned release when no keystore is present**, so F-Droid can sign it (release signing is only applied if `app/release.jks` exists).
 - **No dependency metadata blob**: `dependenciesInfo { includeInApk = false; includeInBundle = false }`.
 - **Store listing** lives in `fastlane/metadata/android/en-US/` (title, short and full description, icon, feature graphic, screenshots, and per-release changelogs named `<versionCode>.txt`).

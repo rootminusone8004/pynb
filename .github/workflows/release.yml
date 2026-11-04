@@ -31,11 +31,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: ☕ Set up JDK 17
+      # Must match F-Droid's build server (Debian trixie, OpenJDK 21): javac 17 and 21 emit
+      # slightly different bytecode, R8 then shrinks it differently, and F-Droid's
+      # reproducible-build check fails. The app still targets Java 17 (compileOptions).
+      - name: ☕ Set up JDK 21
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'gradle'
 
       - name: 🔑 Set up Keystore

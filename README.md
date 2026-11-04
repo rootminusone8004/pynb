@@ -2,7 +2,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-800000.svg)
 &nbsp;&nbsp;
-[![release: 1.4.1](https://img.shields.io/badge/release-1.4.1-blue.svg)](https://github.com/rootminusone8004/pynb/releases)
+[![release: 1.4.2](https://img.shields.io/badge/release-1.4.2-blue.svg)](https://github.com/rootminusone8004/pynb/releases)
 &nbsp;&nbsp;
 [![Build & Release](https://github.com/rootminusone8004/pynb/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/rootminusone8004/pynb/actions/workflows/release.yml)
 

@@ -1,0 +1,2 @@
+Fixed
+  - Reproducible builds: Release APKs are now built with JDK 21, the same as F-Droid's build server, so F-Droid's build is byte-for-byte identical and it can ship the developer-signed APK.
