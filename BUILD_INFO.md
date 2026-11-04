@@ -141,7 +141,17 @@ The version comes from `CHANGELOG.md`. A git pre-commit hook (`.githooks/pre-com
 3. Sets the **release** badge in `README.md` to the same version (only that line is staged, so other README edits you haven't staged stay out of the commit).
 4. Writes that release's notes to `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
 
-CI only checks that these files are up to date (`update_version.py --check`), runs the unit tests, builds the signed release APK and publishes the GitHub release.
+**Releases are published only from version tags.** On pushes to `master` / `tmp` and on pull requests, CI only checks the version files (`update_version.py --check`), runs the unit tests and does a release build. To publish a release:
+
+1. Add a `## [X.Y.Z] - YYYY-MM-DD` section to `CHANGELOG.md` and commit (the hook bumps the version, README badge and Fastlane changelog).
+2. Tag that commit and push the tag:
+   ```bash
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+3. CI checks that the tag matches `CHANGELOG.md`, builds the signed APK from exactly the tagged commit and publishes the GitHub release with `pynb-vX.Y.Z.apk`.
+
+Because the APK comes from the tagged commit, F-Droid's build of the same tag is byte-for-byte identical (reproducible), and F-Droid can ship the APK signed with the developer's key.
 
 ---
 
